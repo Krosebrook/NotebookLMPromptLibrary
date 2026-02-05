@@ -6,6 +6,17 @@
     <meta name="theme-color" content="#2563eb" />
     <meta name="description" content="A curated collection of context-engineered prompts for Google NotebookLM.">
     
+    <!-- Preconnect to CDNs to save DNS/TCP/TLS handshake time -->
+    <link rel="preconnect" href="https://esm.sh" crossorigin>
+    <link rel="preconnect" href="https://cdn.tailwindcss.com">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Module Preload: Start downloading JS before the browser discovers it in the script tag -->
+    <link rel="modulepreload" href="./index.tsx">
+    <link rel="modulepreload" href="./App.tsx">
+    <link rel="modulepreload" href="./constants.ts">
+    
     <!-- PWA / Mobile Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -17,8 +28,10 @@
     <link rel="manifest" href="manifest.json">
     <link rel="apple-touch-icon" href="https://via.placeholder.com/180.png?text=PL">
     
+    <!-- Optimized Font Loading -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap&font-display=swap" rel="stylesheet">
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script>
       tailwind.config = {
         theme: {
@@ -40,22 +53,40 @@
       }
     </script>
     <style>
+      /* Critical CSS for the initial skeleton */
       body {
         background-color: #f8fafc;
         overscroll-behavior-y: none;
+        margin: 0;
+        padding: 0;
       }
       #root:empty {
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
         height: 100vh;
         background: #f8fafc;
       }
+      #root:empty::before {
+        content: "";
+        width: 40px;
+        height: 40px;
+        border: 3px solid #e2e8f0;
+        border-top-color: #2563eb;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-bottom: 16px;
+      }
       #root:empty::after {
-        content: "Loading Application...";
-        font-family: 'Inter', sans-serif;
+        content: "Initializing Library...";
+        font-family: 'Inter', system-ui, sans-serif;
         color: #64748b;
         font-size: 0.875rem;
+        font-weight: 500;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
       }
     </style>
     <script type="importmap">
@@ -72,20 +103,14 @@
   </head>
   <body>
     <div id="root"></div>
-    <!-- Explicitly load the entry point -->
-    <script type="module" src="./index.tsx"></script>
+    <!-- High priority module loading -->
+    <script type="module" src="./index.tsx" fetchpriority="high"></script>
     <script>
-      // More robust Service Worker registration to prevent origin mismatch
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', async () => {
-          try {
-            // Get current location origin and path to ensure correct scope
-            const swUrl = new URL('sw.js', window.location.href).href;
-            const reg = await navigator.serviceWorker.register(swUrl, { scope: './' });
-            console.log('[PWA] Service Worker registered:', reg.scope);
-          } catch (err) {
-            console.warn('[PWA] Service Worker registration skipped or failed:', err.message);
-          }
+        window.addEventListener('load', () => {
+          const swUrl = new URL('sw.js', window.location.href).href;
+          navigator.serviceWorker.register(swUrl, { scope: './' })
+            .catch(err => console.debug('SW skipped:', err.message));
         });
       }
     </script>
