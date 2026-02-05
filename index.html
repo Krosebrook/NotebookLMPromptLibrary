@@ -12,11 +12,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    <!-- Module Preload: Start downloading JS before the browser discovers it in the script tag -->
-    <link rel="modulepreload" href="./index.tsx">
-    <link rel="modulepreload" href="./App.tsx">
-    <link rel="modulepreload" href="./constants.ts">
-    
     <!-- PWA / Mobile Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -103,14 +98,15 @@
   </head>
   <body>
     <div id="root"></div>
-    <!-- High priority module loading -->
+    <!-- Use relative path with dot for ESM entry point -->
     <script type="module" src="./index.tsx" fetchpriority="high"></script>
     <script>
+      // Simplest possible Service Worker registration
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          const swUrl = new URL('sw.js', window.location.href).href;
-          navigator.serviceWorker.register(swUrl, { scope: './' })
-            .catch(err => console.debug('SW skipped:', err.message));
+          navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('[PWA] Registered'))
+            .catch(err => console.debug('[PWA] Registration failed:', err.message));
         });
       }
     </script>

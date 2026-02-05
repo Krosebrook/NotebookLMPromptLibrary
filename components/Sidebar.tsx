@@ -20,8 +20,8 @@ import {
   Edit2,
   Check
 } from 'lucide-react';
-import { CATEGORIES } from '../constants';
-import { IconName, Collection } from '../types';
+import { CATEGORIES } from '../constants.ts';
+import { IconName, Collection } from '../types.ts';
 
 interface SidebarProps {
   activeCategory: string;

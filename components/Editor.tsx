@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { Collaborator } from '../types';
+import { Collaborator } from '../types.ts';
 import { Eye, Edit3, Type, List, Bold, Italic } from 'lucide-react';
 
 interface EditorProps {

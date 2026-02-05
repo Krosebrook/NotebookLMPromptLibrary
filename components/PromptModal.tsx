@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Copy, Check, Info, Lightbulb, Tag, Folder, Layers, FileText, LayoutTemplate } from 'lucide-react';
-import { PromptData, Collection } from '../types';
-import { CATEGORIES } from '../constants';
+import { PromptData, Collection } from '../types.ts';
+import { CATEGORIES } from '../constants.ts';
 
 interface PromptModalProps {
   prompt: PromptData | null;

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Wand2, Copy, Check, RefreshCw, Save, Tag, Folder, Sparkles, AlertCircle } from 'lucide-react';
-import { CATEGORIES } from '../constants';
-import { PromptData, Collection } from '../types';
+import { CATEGORIES } from '../constants.ts';
+import { PromptData, Collection } from '../types.ts';
 import { GoogleGenAI } from '@google/genai';
 
 interface PromptGeneratorProps {
