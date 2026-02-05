@@ -1,21 +1,31 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import PromptCard from './components/PromptCard';
 import PromptModal from './components/PromptModal';
 import Workbench from './components/Workbench';
 import PromptGenerator from './components/PromptGenerator';
+import TutorialOverlay from './components/TutorialOverlay';
 import { PROMPTS, CATEGORIES } from './constants';
 import { PromptData, Collection } from './types';
-import { Search, Menu, Sparkles } from 'lucide-react';
+import { Search, Menu, Sparkles, Filter, ChevronDown } from 'lucide-react';
 
 function App() {
   const [currentView, setCurrentView] = useState<'library' | 'workbench'>('library');
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFormat, setSelectedFormat] = useState('All');
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+  
   const [selectedPrompt, setSelectedPrompt] = useState<PromptData | null>(null);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isGeneratorOpen, setIsGeneratorOpen] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  // Tutorial State
+  const [showTutorial, setShowTutorial] = useState(() => {
+    return !localStorage.getItem('tutorial_completed');
+  });
 
   // Load saved prompts from localStorage
   const [savedPrompts, setSavedPrompts] = useState<PromptData[]>(() => {
@@ -39,6 +49,17 @@ function App() {
     localStorage.setItem('notebook_collections', JSON.stringify(collections));
   }, [collections]);
 
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setShowSearchSuggestions(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Determine header text based on selection
   const activeCollection = collections.find(c => c.id === activeCategory);
   
@@ -56,6 +77,11 @@ function App() {
     return [...savedPrompts, ...PROMPTS];
   }, [savedPrompts]);
 
+  const uniqueFormats = useMemo(() => {
+    const formats = new Set(allPrompts.map(p => p.format));
+    return ['All', ...Array.from(formats)].sort();
+  }, [allPrompts]);
+
   const filteredPrompts = useMemo(() => {
     return allPrompts.filter(prompt => {
       let matchesCategory = false;
@@ -70,15 +96,41 @@ function App() {
         matchesCategory = prompt.categoryId === activeCategory;
       }
 
-      const matchesSearch = 
-        prompt.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        prompt.bestFor.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        prompt.promptText.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (prompt.tags && prompt.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())));
+      // Format Filter
+      if (selectedFormat !== 'All' && prompt.format !== selectedFormat) {
+        return false;
+      }
+
+      // Search Logic (Basic Fuzzy / Keyword)
+      if (!searchQuery.trim()) return matchesCategory;
+
+      const terms = searchQuery.toLowerCase().split(' ').filter(t => t.length > 0);
+      const searchableText = `${prompt.title} ${prompt.bestFor} ${prompt.promptText} ${prompt.tags?.join(' ') || ''}`.toLowerCase();
+      
+      const matchesSearch = terms.every(term => searchableText.includes(term));
       
       return matchesCategory && matchesSearch;
     });
-  }, [activeCategory, activeCollection, searchQuery, allPrompts]);
+  }, [activeCategory, activeCollection, searchQuery, selectedFormat, allPrompts]);
+
+  // Search Suggestions Logic
+  const suggestions = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const query = searchQuery.toLowerCase();
+    
+    const matchedTitles = allPrompts
+      .filter(p => p.title.toLowerCase().includes(query))
+      .map(p => ({ text: p.title, type: 'Title' }))
+      .slice(0, 3);
+      
+    const matchedTags = Array.from(new Set(
+      allPrompts.flatMap(p => p.tags || [])
+        .filter(t => t.toLowerCase().includes(query))
+    )).map(t => ({ text: t, type: 'Tag' }))
+    .slice(0, 3);
+
+    return [...matchedTitles, ...matchedTags];
+  }, [searchQuery, allPrompts]);
 
   const handleQuickCopy = (e: React.MouseEvent, text: string, id: string) => {
     e.stopPropagation();
@@ -99,14 +151,10 @@ function App() {
   };
 
   const handleUpdatePrompt = (updatedPrompt: PromptData) => {
-    // Check if it's a saved prompt or a built-in one
     const isSaved = savedPrompts.some(p => p.id === updatedPrompt.id);
-    
     if (isSaved) {
       setSavedPrompts(prev => prev.map(p => p.id === updatedPrompt.id ? updatedPrompt : p));
     } else {
-      // If user edits a built-in prompt (like adding a tag), we save it as a new copy in their library 
-      // to avoid mutating the constant data, or we could just locally override.
       const newSavedPrompt = { ...updatedPrompt, categoryId: 'saved' };
       setSavedPrompts(prev => [newSavedPrompt, ...prev]);
     }
@@ -117,7 +165,7 @@ function App() {
     const newCollection: Collection = {
       id: `col_${Date.now()}`,
       name,
-      color: 'bg-blue-500', // Default color, could be random
+      color: 'bg-blue-500',
       createdAt: Date.now()
     };
     setCollections(prev => [...prev, newCollection]);
@@ -127,13 +175,11 @@ function App() {
   const handleDeleteCollection = (id: string) => {
     if (confirm('Are you sure you want to delete this collection? Prompts inside will remain in "Saved Templates".')) {
       setCollections(prev => prev.filter(c => c.id !== id));
-      // Remove collectionId from prompts in this collection
       setSavedPrompts(prev => prev.map(p => p.collectionId === id ? { ...p, collectionId: undefined } : p));
       setActiveCategory('saved');
     }
   };
 
-  // Drag and Drop Logic
   const handleMovePrompt = (promptId: string, targetCollectionId: string) => {
     const promptToMove = allPrompts.find(p => p.id === promptId);
     if (!promptToMove) return;
@@ -141,27 +187,30 @@ function App() {
     const isAlreadySaved = savedPrompts.some(p => p.id === promptId);
 
     if (isAlreadySaved) {
-       // Update existing saved prompt
        setSavedPrompts(prev => prev.map(p => 
          p.id === promptId ? { ...p, collectionId: targetCollectionId } : p
        ));
     } else {
-       // Create a copy of the built-in prompt in the user's library
        const newPrompt = { 
          ...promptToMove, 
          categoryId: 'saved',
          collectionId: targetCollectionId,
-         // Ensure unique ID if cloning built-in to avoid conflicts if they drag it multiple times
          id: `saved_${promptToMove.id}_${Date.now()}` 
        };
        setSavedPrompts(prev => [...prev, newPrompt]);
     }
-    // Optional: Switch view to target collection to show success
-    // setActiveCategory(targetCollectionId);
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans text-slate-900 overflow-hidden">
+      <TutorialOverlay 
+        isOpen={showTutorial} 
+        onClose={() => {
+          setShowTutorial(false);
+          localStorage.setItem('tutorial_completed', 'true');
+        }} 
+      />
+
       <Sidebar 
         activeCategory={activeCategory} 
         onSelectCategory={setActiveCategory}
@@ -177,7 +226,7 @@ function App() {
       />
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative w-full">
-        {/* Mobile Menu Button - Floating for Workbench view */}
+        {/* Mobile Menu Button */}
         <button 
           className="md:hidden absolute top-4 left-4 z-40 p-2 bg-white/80 backdrop-blur shadow-sm border border-slate-200 rounded-lg text-slate-500"
           onClick={() => setIsMobileSidebarOpen(true)}
@@ -189,20 +238,67 @@ function App() {
           <>
             {/* Top Header */}
             <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0 pl-16 md:pl-6">
-              <div className="flex items-center gap-4 flex-1">
-                <div className="relative w-full max-w-md">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search className="h-4 w-4 text-slate-400" />
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 flex-1">
+                
+                {/* Search Bar Container */}
+                <div className="relative w-full max-w-xl z-20" ref={searchContainerRef}>
+                  <div className="flex gap-2">
+                     <div className="relative flex-1">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <Search className="h-4 w-4 text-slate-400" />
+                      </div>
+                      <input
+                        type="text"
+                        className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-xl leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all"
+                        placeholder="Search prompts..."
+                        value={searchQuery}
+                        onChange={(e) => {
+                          setSearchQuery(e.target.value);
+                          setShowSearchSuggestions(true);
+                        }}
+                        onFocus={() => setShowSearchSuggestions(true)}
+                      />
+                    </div>
+                    
+                    {/* Format Filter Dropdown */}
+                    <div className="relative">
+                      <select
+                        value={selectedFormat}
+                        onChange={(e) => setSelectedFormat(e.target.value)}
+                        className="appearance-none h-full bg-slate-50 border border-slate-200 rounded-xl pl-3 pr-8 py-2 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer hover:bg-white transition-colors"
+                      >
+                        {uniqueFormats.map(f => (
+                          <option key={f} value={f}>{f === 'All' ? 'All Formats' : f}</option>
+                        ))}
+                      </select>
+                      <Filter className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 pointer-events-none" />
+                    </div>
                   </div>
-                  <input
-                    type="text"
-                    className="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-xl leading-5 bg-slate-50 placeholder-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition-all"
-                    placeholder="Search prompts by title, tag, or content..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
+
+                  {/* Search Suggestions Dropdown */}
+                  {showSearchSuggestions && suggestions.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-2">
+                      <p className="px-4 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider bg-slate-50">Suggestions</p>
+                      {suggestions.map((item, idx) => (
+                        <button
+                          key={idx}
+                          className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center justify-between group transition-colors"
+                          onClick={() => {
+                            setSearchQuery(item.text);
+                            setShowSearchSuggestions(false);
+                          }}
+                        >
+                          <span>{item.text}</span>
+                          <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                            {item.type}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
+
               <div className="hidden sm:flex items-center gap-3">
                  <a 
                   href="https://notebooklm.google.com/" 
@@ -221,9 +317,16 @@ function App() {
               <div className="max-w-6xl mx-auto">
                 
                 <div className="mb-8">
-                  <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                    {activeCategoryData?.label || 'Unknown Category'}
-                  </h2>
+                  <div className="flex items-baseline gap-2">
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                      {activeCategoryData?.label || 'Unknown Category'}
+                    </h2>
+                    {selectedFormat !== 'All' && (
+                       <span className="text-sm font-medium text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                         {selectedFormat}
+                       </span>
+                    )}
+                  </div>
                   <p className="text-slate-500">
                     {activeCategory === 'all' 
                       ? `${allPrompts.length}+ context-engineered prompts ready to copy.` 
@@ -247,13 +350,17 @@ function App() {
                   <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-300">
                     <Search className="w-12 h-12 text-slate-300 mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-slate-900 mb-1">No prompts found</h3>
-                    <p className="text-slate-500">Try adjusting your search terms or category.</p>
-                    {activeCategory !== 'all' && (
+                    <p className="text-slate-500">Try adjusting your search terms or filters.</p>
+                    {(activeCategory !== 'all' || selectedFormat !== 'All') && (
                       <button 
-                        onClick={() => setActiveCategory('all')}
+                        onClick={() => {
+                          setActiveCategory('all');
+                          setSelectedFormat('All');
+                          setSearchQuery('');
+                        }}
                         className="mt-4 text-blue-600 font-medium hover:underline"
                       >
-                        View all categories
+                        Clear all filters
                       </button>
                     )}
                   </div>

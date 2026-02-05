@@ -68,6 +68,11 @@ const Sidebar: React.FC<SidebarProps> = ({
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
   const [dragOverId, setDragOverId] = useState<string | null>(null);
+  
+  // Badge dismissal state
+  const [showNewBadge, setShowNewBadge] = useState(() => {
+    return !localStorage.getItem('workbench_badge_dismissed');
+  });
 
   const handleSubmitCollection = (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,12 +100,18 @@ const Sidebar: React.FC<SidebarProps> = ({
       onMovePrompt(promptId, collectionId);
     }
   };
+  
+  const dismissBadge = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setShowNewBadge(false);
+    localStorage.setItem('workbench_badge_dismissed', 'true');
+  };
 
   return (
     <>
       {/* Mobile Overlay */}
       <div 
-        className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden transition-all duration-300 ease-in-out ${
+        className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300 ease-in-out ${
           isMobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
         }`}
         onClick={() => setIsMobileOpen(false)}
@@ -108,7 +119,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Sidebar Content */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200 transform transition-transform duration-300 ease-out shadow-2xl md:shadow-none
+        fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200 transform transition-transform duration-300 cubic-bezier(0.4, 0, 0.2, 1) shadow-2xl md:shadow-none
         md:translate-x-0 md:static md:w-64 md:block
         ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
@@ -162,14 +173,25 @@ const Sidebar: React.FC<SidebarProps> = ({
                 setIsMobileOpen(false);
               }}
               className={`
-                w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
+                w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group
                 ${currentView === 'workbench' 
                   ? 'bg-purple-50 text-purple-700 shadow-sm ring-1 ring-purple-100' 
                   : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}
               `}
             >
               <Sparkles className={`w-4 h-4 ${currentView === 'workbench' ? 'text-purple-600' : 'text-slate-400'}`} />
-              Workbench <span className="text-[10px] bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full ml-auto shadow-sm">NEW</span>
+              Workbench 
+              {showNewBadge && (
+                <span className="text-[10px] bg-purple-100 text-purple-600 px-1.5 py-0.5 rounded-full ml-auto shadow-sm flex items-center gap-1 group-hover:bg-purple-200 transition-colors">
+                  NEW
+                  <span 
+                    onClick={dismissBadge}
+                    className="hover:bg-purple-300 rounded-full p-0.5 cursor-pointer"
+                  >
+                    <X className="w-2 h-2" />
+                  </span>
+                </span>
+              )}
             </button>
             
             {/* New Generator Button */}

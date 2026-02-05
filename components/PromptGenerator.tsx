@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Wand2, Copy, Check, RefreshCw, Save, Tag, Folder } from 'lucide-react';
+import { X, Wand2, Copy, Check, RefreshCw, Save, Tag, Folder, MessageSquare } from 'lucide-react';
 import { CATEGORIES } from '../constants';
 import { PromptData, Collection } from '../types';
 
@@ -14,12 +14,14 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({ isOpen, onClose, onSa
   const [topic, setTopic] = useState('');
   const [format, setFormat] = useState('Audio Overview');
   const [audience, setAudience] = useState('General Audience');
+  const [tone, setTone] = useState('Professional');
+  
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPrompt, setGeneratedPrompt] = useState('');
   const [isCopied, setIsCopied] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   
-  // New fields for organization
+  // Organization fields
   const [tags, setTags] = useState('');
   const [selectedCollectionId, setSelectedCollectionId] = useState('');
 
@@ -29,15 +31,16 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({ isOpen, onClose, onSa
     e.preventDefault();
     setIsGenerating(true);
 
-    // Simulate AI thinking time
+    // Simulate AI thinking time with slightly more complex logic
     setTimeout(() => {
       const prompt = `Act as an expert content creator specializing in ${format} for ${audience}.
 
-Given the uploaded source materials related to ${topic}, analyze the key information, themes, and data points.
+Role: You are a ${tone} expert in ${topic}.
+Input: Analyze the provided source materials related to ${topic}, extracting key information, themes, and data points.
 
-Stop at the provided context. Do not introduce external information or hallucinations outside of the source text.
+Constraint: Stop at the provided context. Do not introduce external information or hallucinations outside of the source text. Maintain a ${tone.toLowerCase()} tone throughout.
 
-Deliver a ${format} that is strictly based on the source text, structured logically, and optimized for ${audience}.`;
+Task: Deliver a ${format} that is strictly based on the source text, structured logically, and optimized for ${audience}.`;
       
       setGeneratedPrompt(prompt);
       setIsGenerating(false);
@@ -84,7 +87,7 @@ Deliver a ${format} that is strictly based on the source text, structured logica
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+    <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 sm:p-6">
       <div 
         className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm transition-opacity" 
         onClick={onClose}
@@ -143,16 +146,34 @@ Deliver a ${format} that is strictly based on the source text, structured logica
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
-                    Target Audience
+                    Tone
                   </label>
-                  <input
-                    type="text"
-                    placeholder="e.g., Beginners, Executives"
-                    value={audience}
-                    onChange={(e) => setAudience(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
+                  <select
+                    value={tone}
+                    onChange={(e) => setTone(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+                  >
+                    <option value="Professional">Professional</option>
+                    <option value="Academic">Academic</option>
+                    <option value="Casual">Casual</option>
+                    <option value="Funny">Funny</option>
+                    <option value="Persuasive">Persuasive</option>
+                    <option value="Empathetic">Empathetic</option>
+                  </select>
                 </div>
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">
+                  Target Audience
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g., Beginners, Executives, Students"
+                  value={audience}
+                  onChange={(e) => setAudience(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
               </div>
 
               <div className="pt-2">
