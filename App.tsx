@@ -7,7 +7,7 @@ import PromptGenerator from './components/PromptGenerator';
 import TutorialOverlay from './components/TutorialOverlay';
 import { PROMPTS, CATEGORIES } from './constants';
 import { PromptData, Collection } from './types';
-import { Search, Menu, Sparkles, Filter, ChevronDown } from 'lucide-react';
+import { Search, Menu, Sparkles, Filter, ChevronDown, Tag as TagIcon, FileText } from 'lucide-react';
 
 function App() {
   const [currentView, setCurrentView] = useState<'library' | 'workbench'>('library');
@@ -22,34 +22,28 @@ function App() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
 
-  // Tutorial State
   const [showTutorial, setShowTutorial] = useState(() => {
     return !localStorage.getItem('tutorial_completed');
   });
 
-  // Load saved prompts from localStorage
   const [savedPrompts, setSavedPrompts] = useState<PromptData[]>(() => {
     const saved = localStorage.getItem('notebook_saved_prompts');
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Load collections from localStorage
   const [collections, setCollections] = useState<Collection[]>(() => {
     const saved = localStorage.getItem('notebook_collections');
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Persist saved prompts
   useEffect(() => {
     localStorage.setItem('notebook_saved_prompts', JSON.stringify(savedPrompts));
   }, [savedPrompts]);
 
-  // Persist collections
   useEffect(() => {
     localStorage.setItem('notebook_collections', JSON.stringify(collections));
   }, [collections]);
 
-  // Close suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
@@ -60,7 +54,6 @@ function App() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Determine header text based on selection
   const activeCollection = collections.find(c => c.id === activeCategory);
   
   const activeCategoryData = useMemo(() => {
@@ -96,12 +89,10 @@ function App() {
         matchesCategory = prompt.categoryId === activeCategory;
       }
 
-      // Format Filter
       if (selectedFormat !== 'All' && prompt.format !== selectedFormat) {
         return false;
       }
 
-      // Search Logic (Basic Fuzzy / Keyword)
       if (!searchQuery.trim()) return matchesCategory;
 
       const terms = searchQuery.toLowerCase().split(' ').filter(t => t.length > 0);
@@ -113,7 +104,6 @@ function App() {
     });
   }, [activeCategory, activeCollection, searchQuery, selectedFormat, allPrompts]);
 
-  // Search Suggestions Logic
   const suggestions = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const query = searchQuery.toLowerCase();
@@ -141,7 +131,6 @@ function App() {
 
   const handleSaveCustomPrompt = (prompt: PromptData) => {
     setSavedPrompts(prev => [prompt, ...prev]);
-    // Switch to the collection if one was assigned, otherwise saved view
     if (prompt.collectionId) {
       setActiveCategory(prompt.collectionId);
     } else {
@@ -178,6 +167,10 @@ function App() {
       setSavedPrompts(prev => prev.map(p => p.collectionId === id ? { ...p, collectionId: undefined } : p));
       setActiveCategory('saved');
     }
+  };
+
+  const handleRenameCollection = (id: string, newName: string) => {
+    setCollections(prev => prev.map(c => c.id === id ? { ...c, name: newName } : c));
   };
 
   const handleMovePrompt = (promptId: string, targetCollectionId: string) => {
@@ -217,6 +210,7 @@ function App() {
         collections={collections}
         onCreateCollection={handleCreateCollection}
         onDeleteCollection={handleDeleteCollection}
+        onRenameCollection={handleRenameCollection}
         isMobileOpen={isMobileSidebarOpen}
         setIsMobileOpen={setIsMobileSidebarOpen}
         currentView={currentView}
@@ -226,7 +220,6 @@ function App() {
       />
 
       <main className="flex-1 flex flex-col h-screen overflow-hidden relative w-full">
-        {/* Mobile Menu Button */}
         <button 
           className="md:hidden absolute top-4 left-4 z-40 p-2 bg-white/80 backdrop-blur shadow-sm border border-slate-200 rounded-lg text-slate-500"
           onClick={() => setIsMobileSidebarOpen(true)}
@@ -236,11 +229,9 @@ function App() {
 
         {currentView === 'library' ? (
           <>
-            {/* Top Header */}
             <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between shrink-0 pl-16 md:pl-6">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 flex-1">
                 
-                {/* Search Bar Container */}
                 <div className="relative w-full max-w-xl z-20" ref={searchContainerRef}>
                   <div className="flex gap-2">
                      <div className="relative flex-1">
@@ -260,7 +251,6 @@ function App() {
                       />
                     </div>
                     
-                    {/* Format Filter Dropdown */}
                     <div className="relative">
                       <select
                         value={selectedFormat}
@@ -275,21 +265,25 @@ function App() {
                     </div>
                   </div>
 
-                  {/* Search Suggestions Dropdown */}
                   {showSearchSuggestions && suggestions.length > 0 && (
                     <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden animate-in fade-in slide-in-from-top-2">
-                      <p className="px-4 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider bg-slate-50">Suggestions</p>
+                      <div className="px-4 py-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wider bg-slate-50 flex items-center gap-2">
+                        <Sparkles className="w-3 h-3" /> Search Suggestions
+                      </div>
                       {suggestions.map((item, idx) => (
                         <button
                           key={idx}
-                          className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 flex items-center justify-between group transition-colors"
+                          className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 flex items-center justify-between group transition-colors border-b border-slate-50 last:border-0"
                           onClick={() => {
                             setSearchQuery(item.text);
                             setShowSearchSuggestions(false);
                           }}
                         >
-                          <span>{item.text}</span>
-                          <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex items-center gap-3">
+                             {item.type === 'Tag' ? <TagIcon className="w-4 h-4 text-slate-400" /> : <FileText className="w-4 h-4 text-slate-400" />}
+                             <span className="font-medium group-hover:text-blue-600 transition-colors">{item.text}</span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-bold uppercase bg-slate-100 px-2 py-0.5 rounded transition-all group-hover:bg-blue-100 group-hover:text-blue-600">
                             {item.type}
                           </span>
                         </button>
@@ -312,7 +306,6 @@ function App() {
               </div>
             </header>
 
-            {/* Scrollable Content */}
             <div className="flex-1 overflow-y-auto p-6 md:p-8">
               <div className="max-w-6xl mx-auto">
                 
@@ -383,7 +376,6 @@ function App() {
           <Workbench />
         )}
         
-        {/* Global Prompt Generator Modal */}
         <PromptGenerator 
           isOpen={isGeneratorOpen} 
           collections={collections}

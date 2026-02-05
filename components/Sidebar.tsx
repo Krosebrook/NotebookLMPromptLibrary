@@ -16,7 +16,9 @@ import {
   Bookmark,
   Folder,
   Plus,
-  Trash2
+  Trash2,
+  Edit2,
+  Check
 } from 'lucide-react';
 import { CATEGORIES } from '../constants';
 import { IconName, Collection } from '../types';
@@ -27,6 +29,7 @@ interface SidebarProps {
   collections: Collection[];
   onCreateCollection: (name: string) => void;
   onDeleteCollection: (id: string) => void;
+  onRenameCollection: (id: string, newName: string) => void;
   isMobileOpen: boolean;
   setIsMobileOpen: (isOpen: boolean) => void;
   currentView: 'library' | 'workbench';
@@ -58,6 +61,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   collections,
   onCreateCollection,
   onDeleteCollection,
+  onRenameCollection,
   isMobileOpen, 
   setIsMobileOpen,
   currentView,
@@ -67,9 +71,10 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
   const [newCollectionName, setNewCollectionName] = useState('');
+  const [editingCollectionId, setEditingCollectionId] = useState<string | null>(null);
+  const [editingName, setEditingName] = useState('');
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   
-  // Badge dismissal state
   const [showNewBadge, setShowNewBadge] = useState(() => {
     return !localStorage.getItem('workbench_badge_dismissed');
   });
@@ -80,6 +85,13 @@ const Sidebar: React.FC<SidebarProps> = ({
       onCreateCollection(newCollectionName.trim());
       setNewCollectionName('');
       setIsCreatingCollection(false);
+    }
+  };
+
+  const handleRenameSubmit = (id: string) => {
+    if (editingName.trim()) {
+      onRenameCollection(id, editingName.trim());
+      setEditingCollectionId(null);
     }
   };
 
@@ -109,7 +121,6 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      {/* Mobile Overlay */}
       <div 
         className={`fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-40 md:hidden transition-opacity duration-300 ease-in-out ${
           isMobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
@@ -117,7 +128,6 @@ const Sidebar: React.FC<SidebarProps> = ({
         onClick={() => setIsMobileOpen(false)}
       />
 
-      {/* Sidebar Content */}
       <aside className={`
         fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-slate-200 transform transition-transform duration-300 cubic-bezier(0.4, 0, 0.2, 1) shadow-2xl md:shadow-none
         md:translate-x-0 md:static md:w-64 md:block
@@ -141,11 +151,9 @@ const Sidebar: React.FC<SidebarProps> = ({
               </div>
             </div>
             
-            {/* Close button for mobile */}
             <button 
               onClick={() => setIsMobileOpen(false)}
               className="md:hidden p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 rounded-lg transition-colors"
-              aria-label="Close sidebar"
             >
               <X className="w-5 h-5" />
             </button>
@@ -194,7 +202,6 @@ const Sidebar: React.FC<SidebarProps> = ({
               )}
             </button>
             
-            {/* New Generator Button */}
             <button
               onClick={() => {
                 onOpenGenerator();
@@ -226,14 +233,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                   Saved Templates
                 </button>
 
-              {/* Collections Section */}
               <div className="mt-4 mb-4">
                 <div className="flex items-center justify-between px-3 mb-2">
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Collections</p>
                   <button 
                     onClick={() => setIsCreatingCollection(true)}
                     className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600"
-                    title="New Collection"
                   >
                     <Plus className="w-3.5 h-3.5" />
                   </button>
@@ -258,37 +263,67 @@ const Sidebar: React.FC<SidebarProps> = ({
                       key={collection.id} 
                       className={`
                         group flex items-center justify-between pr-2 rounded-lg transition-all
-                        ${dragOverId === collection.id ? 'bg-blue-50 ring-2 ring-blue-200 scale-[1.02]' : ''}
+                        ${dragOverId === collection.id ? 'bg-blue-50 ring-2 ring-blue-300 scale-[1.02]' : ''}
                       `}
                       onDragOver={(e) => handleDragOver(e, collection.id)}
                       onDragLeave={handleDragLeave}
                       onDrop={(e) => handleDrop(e, collection.id)}
                    >
-                     <button
-                      onClick={() => {
-                        onSelectCategory(collection.id);
-                        setIsMobileOpen(false);
-                      }}
-                      className={`
-                        flex-1 flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-left truncate
-                        ${activeCategory === collection.id 
-                          ? 'bg-slate-100 text-slate-900' 
-                          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}
-                      `}
-                    >
-                      <Folder className={`w-4 h-4 flex-shrink-0 ${activeCategory === collection.id ? 'fill-blue-100 text-blue-600' : 'fill-slate-50 text-slate-400'}`} />
-                      <span className="truncate">{collection.name}</span>
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onDeleteCollection(collection.id);
-                      }}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded transition-all"
-                      title="Delete Collection"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                     {editingCollectionId === collection.id ? (
+                        <div className="flex-1 flex items-center gap-1 px-2 py-1">
+                          <input
+                            type="text"
+                            autoFocus
+                            value={editingName}
+                            onChange={(e) => setEditingName(e.target.value)}
+                            onBlur={() => handleRenameSubmit(collection.id)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleRenameSubmit(collection.id)}
+                            className="flex-1 text-xs border border-blue-400 rounded px-1.5 py-1 outline-none"
+                          />
+                          <button onClick={() => handleRenameSubmit(collection.id)} className="p-1 text-green-600">
+                            <Check className="w-3 h-3" />
+                          </button>
+                        </div>
+                     ) : (
+                        <>
+                          <button
+                            onClick={() => {
+                              onSelectCategory(collection.id);
+                              setIsMobileOpen(false);
+                            }}
+                            className={`
+                              flex-1 flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-left truncate
+                              ${activeCategory === collection.id 
+                                ? 'bg-slate-100 text-slate-900' 
+                                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}
+                            `}
+                          >
+                            <Folder className={`w-4 h-4 flex-shrink-0 ${activeCategory === collection.id ? 'fill-blue-100 text-blue-600' : 'fill-slate-50 text-slate-400'}`} />
+                            <span className="truncate">{collection.name}</span>
+                          </button>
+                          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingCollectionId(collection.id);
+                                setEditingName(collection.name);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteCollection(collection.id);
+                              }}
+                              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded transition-all"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </>
+                     )}
                    </div>
                 ))}
               </div>
