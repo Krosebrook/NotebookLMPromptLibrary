@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { X, Wand2, Copy, Check, RefreshCw, Save, Tag, Folder, MessageSquare } from 'lucide-react';
+import { X, Wand2, Copy, Check, RefreshCw, Save, Tag, Folder, Sparkles, AlertCircle } from 'lucide-react';
 import { CATEGORIES } from '../constants';
 import { PromptData, Collection } from '../types';
+import { GoogleGenAI } from '@google/genai';
 
 interface PromptGeneratorProps {
   isOpen: boolean;
@@ -18,33 +19,54 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({ isOpen, onClose, onSa
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPrompt, setGeneratedPrompt] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   
-  // Organization fields
   const [tags, setTags] = useState('');
   const [selectedCollectionId, setSelectedCollectionId] = useState('');
 
   if (!isOpen) return null;
 
-  const handleGenerate = (e: React.FormEvent) => {
+  const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsGenerating(true);
+    setError(null);
 
-    // Simulate AI thinking time with slightly more complex logic
-    setTimeout(() => {
-      const prompt = `Act as an expert content creator specializing in ${format} for ${audience}.
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: `Generate a high-quality NotebookLM prompt for the topic: "${topic}".
+Format required: ${format}
+Audience: ${audience}
+Tone: ${tone}
 
-Role: You are a ${tone} expert in ${topic}.
-Input: Analyze the provided source materials related to ${topic}, extracting key information, themes, and data points.
+You MUST follow the R-I-S-E framework:
+- ROLE: Define a specific persona for the AI.
+- INPUT: Specify how the AI should use the uploaded source materials.
+- STOP: Set clear constraints and boundaries.
+- EXAMPLE: Provide or describe the expected output format.
 
-Constraint: Stop at the provided context. Do not introduce external information or hallucinations outside of the source text. Maintain a ${tone.toLowerCase()} tone throughout.
+Return ONLY the prompt text, no conversational filler.`,
+        config: {
+          systemInstruction: "You are a world-class Prompt Engineer specializing in Google NotebookLM. Your prompts are structured, precise, and leverage the R-I-S-E framework to eliminate hallucinations and maximize depth.",
+          temperature: 0.7,
+        }
+      });
 
-Task: Deliver a ${format} that is strictly based on the source text, structured logically, and optimized for ${audience}.`;
-      
-      setGeneratedPrompt(prompt);
+      const text = response.text;
+      if (text) {
+        setGeneratedPrompt(text.trim());
+      } else {
+        throw new Error("No content received from AI.");
+      }
+    } catch (err: any) {
+      console.error("Generation failed:", err);
+      setError("Failed to generate prompt. Please check your connection or try again.");
+    } finally {
       setIsGenerating(false);
-    }, 800);
+    }
   };
 
   const handleCopy = () => {
@@ -64,8 +86,8 @@ Task: Deliver a ${format} that is strictly based on the source text, structured 
         format: format,
         bestFor: audience,
         promptText: generatedPrompt,
-        exampleSources: 'User specified sources',
-        tip: 'Generated via Prompt Generator',
+        exampleSources: 'Custom User Sources',
+        tip: 'Generated via AI Prompt Generator',
         tags: parsedTags,
         collectionId: selectedCollectionId || undefined
       };
@@ -84,6 +106,7 @@ Task: Deliver a ${format} that is strictly based on the source text, structured 
     setIsSaved(false);
     setTags('');
     setSelectedCollectionId('');
+    setError(null);
   };
 
   return (
@@ -94,13 +117,12 @@ Task: Deliver a ${format} that is strictly based on the source text, structured 
       />
       
       <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200 border border-slate-100 max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-purple-50 to-white sticky top-0 z-10">
+        <div className="flex items-center justify-between p-5 border-b border-slate-100 bg-gradient-to-r from-blue-50 to-white sticky top-0 z-10">
           <div className="flex items-center gap-2">
-            <div className="bg-purple-100 p-2 rounded-lg text-purple-600">
-              <Wand2 className="w-5 h-5" />
+            <div className="bg-blue-100 p-2 rounded-lg text-blue-600">
+              <Sparkles className="w-5 h-5" />
             </div>
-            <h2 className="text-lg font-bold text-slate-900">Prompt Generator</h2>
+            <h2 className="text-lg font-bold text-slate-900">AI Prompt Generator</h2>
           </div>
           <button 
             onClick={onClose}
@@ -110,8 +132,14 @@ Task: Deliver a ${format} that is strictly based on the source text, structured 
           </button>
         </div>
 
-        {/* Content */}
         <div className="p-6">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-lg flex items-center gap-3 text-red-600 text-sm">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              {error}
+            </div>
+          )}
+
           {!generatedPrompt ? (
             <form onSubmit={handleGenerate} className="space-y-4">
               <div>
@@ -121,10 +149,10 @@ Task: Deliver a ${format} that is strictly based on the source text, structured 
                 <input
                   type="text"
                   required
-                  placeholder="e.g., Quarterly Financial Report, The Great Gatsby"
+                  placeholder="e.g., Quantum Computing Basics, Clinical Trial Results"
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                 />
               </div>
 
@@ -136,12 +164,11 @@ Task: Deliver a ${format} that is strictly based on the source text, structured 
                   <select
                     value={format}
                     onChange={(e) => setFormat(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   >
                     {CATEGORIES.filter(c => c.id !== 'all').map(c => (
                       <option key={c.id} value={c.label}>{c.label}</option>
                     ))}
-                    <option value="Custom Format">Custom Format</option>
                   </select>
                 </div>
                 <div>
@@ -151,14 +178,13 @@ Task: Deliver a ${format} that is strictly based on the source text, structured 
                   <select
                     value={tone}
                     onChange={(e) => setTone(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   >
                     <option value="Professional">Professional</option>
                     <option value="Academic">Academic</option>
                     <option value="Casual">Casual</option>
-                    <option value="Funny">Funny</option>
-                    <option value="Persuasive">Persuasive</option>
-                    <option value="Empathetic">Empathetic</option>
+                    <option value="Highly Critical">Highly Critical</option>
+                    <option value="Socratic">Socratic</option>
                   </select>
                 </div>
               </div>
@@ -169,10 +195,10 @@ Task: Deliver a ${format} that is strictly based on the source text, structured 
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g., Beginners, Executives, Students"
+                  placeholder="e.g., C-Level Executives, Undergraduates"
                   value={audience}
                   onChange={(e) => setAudience(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
@@ -181,118 +207,103 @@ Task: Deliver a ${format} that is strictly based on the source text, structured 
                   type="submit"
                   disabled={!topic || isGenerating}
                   className={`
-                    w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-white font-medium transition-all
+                    w-full flex items-center justify-center gap-2 py-3 rounded-xl text-white font-semibold transition-all
                     ${!topic || isGenerating 
-                      ? 'bg-purple-300 cursor-not-allowed' 
-                      : 'bg-purple-600 hover:bg-purple-700 shadow-md hover:shadow-lg'}
+                      ? 'bg-slate-300 cursor-not-allowed' 
+                      : 'bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-100'}
                   `}
                 >
                   {isGenerating ? (
                     <>
-                      <RefreshCw className="w-4 h-4 animate-spin" />
-                      Generating...
+                      <RefreshCw className="w-5 h-5 animate-spin" />
+                      AI is Crafting Your Prompt...
                     </>
                   ) : (
                     <>
-                      <Wand2 className="w-4 h-4" />
-                      Generate Prompt
+                      <Wand2 className="w-5 h-5" />
+                      Generate with Gemini
                     </>
                   )}
                 </button>
               </div>
-              
-              <p className="text-center text-xs text-slate-400 mt-2">
-                Uses the R-I-S-E framework to structure your prompt automatically.
-              </p>
             </form>
           ) : (
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-              <div className="bg-purple-50 border border-purple-100 rounded-xl p-4 relative">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 relative">
                 <div className="absolute top-3 right-3 flex gap-2">
                   <button
                     onClick={handleCopy}
                     className={`
-                      p-1.5 rounded-md transition-all
-                      ${isCopied ? 'bg-green-100 text-green-700' : 'bg-white text-slate-400 hover:text-purple-600 shadow-sm'}
+                      p-2 rounded-lg transition-all shadow-sm
+                      ${isCopied ? 'bg-green-600 text-white' : 'bg-white text-slate-400 hover:text-blue-600 border border-slate-200'}
                     `}
                     title="Copy to clipboard"
                   >
                     {isCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                   </button>
                 </div>
-                <h3 className="text-xs font-bold text-purple-800 uppercase tracking-wider mb-2">Generated Prompt</h3>
-                <pre className="whitespace-pre-wrap font-sans text-slate-800 text-sm leading-relaxed pr-8">
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                  <Sparkles className="w-3 h-3 text-blue-500" /> R-I-S-E Structured Prompt
+                </h3>
+                <pre className="whitespace-pre-wrap font-sans text-slate-800 text-sm leading-relaxed pr-8 max-h-64 overflow-y-auto">
                   {generatedPrompt}
                 </pre>
               </div>
 
-              {/* Organization Fields for Saving */}
-              {onSave && (
-                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-3">
-                  <h4 className="text-xs font-semibold text-slate-500 uppercase">Organization</h4>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1 flex items-center gap-1">
-                        <Tag className="w-3 h-3" /> Tags (comma separated)
-                      </label>
-                      <input
-                        type="text"
-                        value={tags}
-                        onChange={(e) => setTags(e.target.value)}
-                        placeholder="e.g., work, important, draft"
-                        className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs font-medium text-slate-600 mb-1 flex items-center gap-1">
-                        <Folder className="w-3 h-3" /> Collection
-                      </label>
-                      <select
-                        value={selectedCollectionId}
-                        onChange={(e) => setSelectedCollectionId(e.target.value)}
-                        className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-md focus:outline-none focus:ring-1 focus:ring-purple-500 bg-white"
-                      >
-                        <option value="">None (Unsorted)</option>
-                        {collections.map(col => (
-                          <option key={col.id} value={col.id}>{col.name}</option>
-                        ))}
-                      </select>
-                    </div>
+              <div className="bg-white rounded-xl p-4 border border-slate-200 space-y-3">
+                <h4 className="text-xs font-semibold text-slate-400 uppercase">Save to Library</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1">
+                      <Tag className="w-3 h-3" /> Tags
+                    </label>
+                    <input
+                      type="text"
+                      value={tags}
+                      onChange={(e) => setTags(e.target.value)}
+                      placeholder="work, report"
+                      className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-md focus:ring-1 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold text-slate-400 mb-1 flex items-center gap-1">
+                      <Folder className="w-3 h-3" /> Collection
+                    </label>
+                    <select
+                      value={selectedCollectionId}
+                      onChange={(e) => setSelectedCollectionId(e.target.value)}
+                      className="w-full px-2 py-1.5 text-sm border border-slate-200 rounded-md focus:ring-1 focus:ring-blue-500 bg-white"
+                    >
+                      <option value="">None</option>
+                      {collections.map(col => (
+                        <option key={col.id} value={col.id}>{col.name}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
-              )}
+              </div>
               
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={handleReset}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-50 text-sm font-medium transition-colors"
+                  className="px-4 py-2 border border-slate-200 rounded-lg text-slate-600 hover:bg-slate-100 text-sm font-medium transition-colors"
                 >
-                  Back
+                  Start Over
                 </button>
                 
                 {onSave && (
                    <button
                     onClick={handleSaveToLibrary}
+                    disabled={isSaved}
                     className={`
-                      flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors shadow-sm
-                      ${isSaved ? 'bg-green-600 text-white' : 'bg-white border border-slate-200 text-slate-700 hover:border-purple-300 hover:text-purple-600'}
+                      flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
+                      ${isSaved ? 'bg-green-600 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'}
                     `}
                   >
                     {isSaved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
-                    {isSaved ? 'Saved!' : 'Save Template'}
+                    {isSaved ? 'Saved!' : 'Save to My Collection'}
                   </button>
                 )}
-
-                <button
-                  onClick={() => {
-                    handleCopy();
-                    onClose();
-                  }}
-                  className="flex-1 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium transition-colors shadow-sm"
-                >
-                  Copy & Close
-                </button>
               </div>
             </div>
           )}

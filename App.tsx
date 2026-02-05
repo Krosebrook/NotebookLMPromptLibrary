@@ -1,13 +1,13 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import Sidebar from './components/Sidebar';
-import PromptCard from './components/PromptCard';
-import PromptModal from './components/PromptModal';
-import Workbench from './components/Workbench';
-import PromptGenerator from './components/PromptGenerator';
-import TutorialOverlay from './components/TutorialOverlay';
-import { PROMPTS, CATEGORIES } from './constants';
-import { PromptData, Collection } from './types';
-import { Search, Menu, Sparkles, Filter, ChevronDown, Tag as TagIcon, FileText } from 'lucide-react';
+import Sidebar from './components/Sidebar.tsx';
+import PromptCard from './components/PromptCard.tsx';
+import PromptModal from './components/PromptModal.tsx';
+import Workbench from './components/Workbench.tsx';
+import PromptGenerator from './components/PromptGenerator.tsx';
+import TutorialOverlay from './components/TutorialOverlay.tsx';
+import { PROMPTS, CATEGORIES } from './constants.ts';
+import { PromptData, Collection } from './types.ts';
+import { Search, Menu, Sparkles, Filter, Tag as TagIcon, FileText } from 'lucide-react';
 
 function App() {
   const [currentView, setCurrentView] = useState<'library' | 'workbench'>('library');

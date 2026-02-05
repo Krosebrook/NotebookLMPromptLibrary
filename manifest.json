@@ -1,20 +1,57 @@
 {
   "name": "NotebookLM Prompt Library",
   "short_name": "PromptLib",
-  "start_url": "/",
+  "description": "A curated collection of 200+ context-engineered prompts for Google NotebookLM using the R-I-S-E framework.",
+  "categories": ["productivity", "education", "utilities"],
+  "start_url": "./?utm_source=pwa",
   "display": "standalone",
   "background_color": "#ffffff",
-  "theme_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "any",
+  "scope": "./",
+  "lang": "en-US",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "Library",
+      "url": "./",
+      "description": "Browse prompt library",
+      "icons": [{ "src": "https://via.placeholder.com/96.png?text=Lib", "sizes": "96x96" }]
+    },
+    {
+      "name": "Workbench",
+      "url": "./?view=workbench",
+      "description": "Open prompt editor",
+      "icons": [{ "src": "https://via.placeholder.com/96.png?text=WB", "sizes": "96x96" }]
+    }
+  ],
   "icons": [
     {
       "src": "https://via.placeholder.com/192.png?text=PL",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
     },
     {
       "src": "https://via.placeholder.com/512.png?text=PL",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "https://via.placeholder.com/1280x720.png?text=Library+View",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "The main prompt library grid"
+    },
+    {
+      "src": "https://via.placeholder.com/1280x720.png?text=Workbench+View",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "label": "Prompt editing workbench"
     }
   ]
 }
