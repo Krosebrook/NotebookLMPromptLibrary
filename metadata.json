@@ -1,0 +1,5 @@
+{
+  "name": "NotebookLM Prompt Library",
+  "description": "A curated collection of 200+ context-engineered prompts for Google NotebookLM using the R-I-S-E framework.",
+  "requestFramePermissions": []
+}

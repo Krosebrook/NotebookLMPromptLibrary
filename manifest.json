@@ -1,0 +1,20 @@
+{
+  "name": "NotebookLM Prompt Library",
+  "short_name": "PromptLib",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "https://via.placeholder.com/192.png?text=PL",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://via.placeholder.com/512.png?text=PL",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
