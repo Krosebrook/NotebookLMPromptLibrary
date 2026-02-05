@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Copy, Check, Info, Lightbulb, Tag, Folder } from 'lucide-react';
+import { X, Copy, Check, Info, Lightbulb, Tag, Folder, Layers, FileText, LayoutTemplate } from 'lucide-react';
 import { PromptData, Collection } from '../types';
+import { CATEGORIES } from '../constants';
 
 interface PromptModalProps {
   prompt: PromptData | null;
@@ -20,13 +21,13 @@ const PromptModal: React.FC<PromptModalProps> = ({ prompt, collections = [], onU
     if (prompt) {
       setTags(prompt.tags ? prompt.tags.join(', ') : '');
       setCollectionId(prompt.collectionId || '');
-      // Only show editing interface by default if it's already a custom prompt? 
-      // For now, let's keep it view-only unless user decides to organize
       setIsEditing(false);
     }
   }, [prompt]);
 
   if (!prompt) return null;
+
+  const category = CATEGORIES.find(c => c.id === prompt.categoryId);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(prompt.promptText);
@@ -57,9 +58,6 @@ const PromptModal: React.FC<PromptModalProps> = ({ prompt, collections = [], onU
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-white sticky top-0 z-10">
           <div>
-            <span className="text-xs font-semibold tracking-wider text-blue-600 uppercase mb-1 block">
-              {prompt.format}
-            </span>
             <h2 className="text-xl font-bold text-slate-900 leading-tight pr-8">
               {prompt.title}
             </h2>
@@ -103,6 +101,38 @@ const PromptModal: React.FC<PromptModalProps> = ({ prompt, collections = [], onU
             <pre className="whitespace-pre-wrap font-sans text-slate-800 text-sm leading-relaxed pt-8 sm:pt-0 sm:pr-24">
               {prompt.promptText}
             </pre>
+          </div>
+
+          {/* New Visually Distinct Metadata Panel */}
+          <div className="bg-slate-100 rounded-xl p-5 border border-slate-200">
+            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Key Metadata</h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                 <div>
+                   <span className="text-[10px] text-slate-400 mb-1 block">Format</span>
+                   <div className="flex items-center gap-2 text-slate-800 font-semibold text-sm">
+                     <FileText className="w-4 h-4 text-blue-500" />
+                     {prompt.format}
+                   </div>
+                 </div>
+                 <div>
+                   <span className="text-[10px] text-slate-400 mb-1 block">Category</span>
+                   <div className="flex items-center gap-2 text-slate-800 font-semibold text-sm">
+                     <Layers className="w-4 h-4 text-purple-500" />
+                     {category?.label || 'General'}
+                   </div>
+                 </div>
+              </div>
+              
+              <div>
+                <span className="text-[10px] text-slate-400 mb-1 block flex items-center gap-1">
+                  <Info className="w-3 h-3" /> Best For
+                </span>
+                <p className="text-sm text-slate-700 leading-relaxed font-medium">
+                  {prompt.bestFor}
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Organization Bar */}
@@ -170,27 +200,17 @@ const PromptModal: React.FC<PromptModalProps> = ({ prompt, collections = [], onU
              )}
           </div>
 
-          {/* Details Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="bg-white border border-slate-100 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2 text-slate-900 font-semibold text-sm">
-                <Info className="w-4 h-4 text-blue-500" />
-                Best For
-              </div>
-              <p className="text-sm text-slate-600 leading-relaxed">
-                {prompt.bestFor}
-              </p>
-            </div>
-
-            <div className="bg-white border border-slate-100 rounded-lg p-4">
-               <div className="flex items-center gap-2 mb-2 text-slate-900 font-semibold text-sm">
-                <Lightbulb className="w-4 h-4 text-amber-500" />
-                NotebookLM Tip
-              </div>
-              <p className="text-sm text-slate-600 leading-relaxed">
-                {prompt.tip}
-              </p>
-            </div>
+          {/* Tip Section */}
+          <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex gap-3">
+             <div className="bg-amber-100 p-2 rounded-lg h-fit text-amber-600 shrink-0">
+               <Lightbulb className="w-5 h-5" />
+             </div>
+             <div>
+               <h4 className="text-amber-900 font-bold text-sm mb-1">NotebookLM Pro Tip</h4>
+               <p className="text-sm text-amber-800 leading-relaxed">
+                 {prompt.tip}
+               </p>
+             </div>
           </div>
 
            <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
