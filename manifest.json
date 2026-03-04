@@ -17,40 +17,40 @@
       "name": "Library",
       "url": "./",
       "description": "Browse prompt library",
-      "icons": [{ "src": "https://via.placeholder.com/96.png?text=Lib", "sizes": "96x96" }]
+      "icons": [{ "src": "https://picsum.photos/seed/lib/96/96", "sizes": "96x96", "type": "image/jpeg" }]
     },
     {
       "name": "Workbench",
       "url": "./?view=workbench",
       "description": "Open prompt editor",
-      "icons": [{ "src": "https://via.placeholder.com/96.png?text=WB", "sizes": "96x96" }]
+      "icons": [{ "src": "https://picsum.photos/seed/wb/96/96", "sizes": "96x96", "type": "image/jpeg" }]
     }
   ],
   "icons": [
     {
-      "src": "https://via.placeholder.com/192.png?text=PL",
+      "src": "https://picsum.photos/seed/pl192/192/192",
       "sizes": "192x192",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     },
     {
-      "src": "https://via.placeholder.com/512.png?text=PL",
+      "src": "https://picsum.photos/seed/pl512/512/512",
       "sizes": "512x512",
-      "type": "image/png",
+      "type": "image/jpeg",
       "purpose": "any maskable"
     }
   ],
   "screenshots": [
     {
-      "src": "https://via.placeholder.com/1280x720.png?text=Library+View",
+      "src": "https://picsum.photos/seed/libview/1280/720",
       "sizes": "1280x720",
-      "type": "image/png",
+      "type": "image/jpeg",
       "label": "The main prompt library grid"
     },
     {
-      "src": "https://via.placeholder.com/1280x720.png?text=Workbench+View",
+      "src": "https://picsum.photos/seed/wbview/1280/720",
       "sizes": "1280x720",
-      "type": "image/png",
+      "type": "image/jpeg",
       "label": "Prompt editing workbench"
     }
   ]

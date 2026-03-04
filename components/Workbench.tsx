@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, Users, Share2, Save, Undo, Redo, ChevronRight, CheckCircle2, Sparkles, AlertTriangle, X, BrainCircuit, RefreshCw } from 'lucide-react';
+import { Clock, Users, Share2, Save, Undo, Redo, ChevronRight, CheckCircle2, Sparkles, AlertTriangle, X, BrainCircuit, RefreshCw, Cloud } from 'lucide-react';
 import Editor from './Editor.tsx';
 import CitationPanel from './CitationPanel.tsx';
 import ShareDialog from './ShareDialog.tsx';
@@ -130,20 +130,71 @@ Format the output clearly using headers and bullet points.`,
               Workbench Draft
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-bold border border-blue-100">AI Enabled</span>
             </h1>
-            <div className="flex items-center gap-1.5 mt-0.5">
+            <div className="flex items-center gap-2 mt-0.5">
                {isSaving ? (
-                 <div className="text-xs text-amber-500 font-medium animate-pulse">Saving...</div>
+                 <div className="flex items-center gap-1.5 bg-amber-50 px-2 py-0.5 rounded-md transition-all">
+                   <RefreshCw className="w-3 h-3 text-amber-500 animate-spin" />
+                   <span className="text-xs text-amber-600 font-bold">Autosaving...</span>
+                 </div>
                ) : (
-                 <div className="flex items-center gap-1 text-xs text-slate-400">
-                    <CheckCircle2 className="w-3 h-3 text-emerald-500" />
-                    <span>Last saved: {lastSaved}</span>
+                 <div className="flex items-center gap-1.5 text-xs text-slate-500 group relative cursor-help transition-all">
+                    <CheckCircle2 className="w-3 h-3 text-green-500" />
+                    <span className="font-medium text-slate-600">Autosaved</span>
+                    <span className="text-slate-300">|</span>
+                    <span className="text-slate-400">{lastSaved === 'Just now' ? 'Just now' : `at ${lastSaved}`}</span>
+                    
+                    {/* Tooltip for save status */}
+                    <div className="absolute top-full left-0 mt-1 hidden group-hover:block bg-slate-800 text-white text-[10px] px-2 py-1 rounded shadow-lg whitespace-nowrap z-50">
+                      Changes saved to local storage
+                    </div>
                  </div>
                )}
             </div>
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
+          {/* Active Collaborators Stack */}
+          <div className="flex items-center -space-x-2 mr-2">
+            {collaborators.filter(c => c.isActive).map((c) => (
+              <div key={c.id} className="relative group cursor-pointer hover:z-10 transition-all animate-in fade-in zoom-in slide-in-from-left-2 duration-300">
+                <div className={`w-8 h-8 rounded-full border-2 border-white flex items-center justify-center text-xs text-white font-medium ${c.color} shadow-sm relative overflow-hidden`}>
+                  {c.initials}
+                </div>
+                {/* Status Dot with Animation */}
+                <span className="absolute bottom-0 right-0 flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500 border-2 border-white"></span>
+                </span>
+                
+                {/* Enhanced Tooltip */}
+                <div className="absolute top-full right-1/2 translate-x-1/2 mt-2 px-3 py-2 bg-slate-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 transform group-hover:translate-y-0 translate-y-1 pointer-events-none z-50 shadow-xl min-w-[120px]">
+                  <div className="font-semibold flex items-center gap-1">
+                    {c.name} 
+                    {c.id === 'current' && <span className="text-slate-400 font-normal text-[10px]">(You)</span>}
+                  </div>
+                  <div className="text-[10px] text-slate-300 capitalize mb-1 font-medium">{c.role}</div>
+                  <div className="text-[9px] text-green-300 font-normal flex items-center gap-1.5 border-t border-slate-700 pt-1">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500"></span>
+                    </span>
+                    Active Now
+                  </div>
+                </div>
+              </div>
+            ))}
+            <button 
+              onClick={() => setIsShareOpen(true)}
+              className="w-8 h-8 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 hover:text-blue-600 hover:border-blue-400 hover:bg-blue-50 transition-all z-0 bg-white"
+              title="Invite collaborators"
+            >
+              <Users className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          <div className="h-6 w-px bg-slate-200" />
+
           <button 
             onClick={runAiCritique}
             disabled={isCritiquing}
@@ -155,14 +206,12 @@ Format the output clearly using headers and bullet points.`,
             AI Critique
           </button>
 
-          <div className="h-6 w-px bg-slate-200" />
-
-          <div className="flex items-center gap-1">
-             <button onClick={handleUndo} disabled={historyIndex <= 0} className={`p-1.5 rounded-lg ${historyIndex > 0 ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-300'}`}><Undo className="w-4 h-4" /></button>
-             <button onClick={handleRedo} disabled={historyIndex >= history.length - 1} className={`p-1.5 rounded-lg ${historyIndex < history.length - 1 ? 'text-slate-600 hover:bg-slate-100' : 'text-slate-300'}`}><Redo className="w-4 h-4" /></button>
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-lg">
+             <button onClick={handleUndo} disabled={historyIndex <= 0} className={`p-1.5 rounded-md ${historyIndex > 0 ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-300'}`}><Undo className="w-4 h-4" /></button>
+             <button onClick={handleRedo} disabled={historyIndex >= history.length - 1} className={`p-1.5 rounded-md ${historyIndex < history.length - 1 ? 'bg-white text-slate-700 shadow-sm' : 'text-slate-300'}`}><Redo className="w-4 h-4" /></button>
           </div>
 
-          <button onClick={() => setShowHistory(!showHistory)} className={`p-2 rounded-lg ${showHistory ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`}><Clock className="w-5 h-5" /></button>
+          <button onClick={() => setShowHistory(!showHistory)} className={`p-2 rounded-lg ${showHistory ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-100'}`} title="Version History"><Clock className="w-5 h-5" /></button>
           
           <button onClick={() => setIsShareOpen(true)} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium shadow-sm flex items-center gap-2">
             <Share2 className="w-4 h-4" /> Share

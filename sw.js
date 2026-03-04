@@ -1,9 +1,10 @@
-const CACHE_NAME = 'notebooklm-v1.0.2';
+const CACHE_NAME = 'notebooklm-v1.0.5';
 const STATIC_ASSETS = [
   './',
   'index.html',
   'manifest.json',
-  'metadata.json'
+  'metadata.json',
+  'offline.html'
 ];
 
 const CDN_DOMAINS = [
@@ -40,7 +41,14 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Strategy 1: Stale-While-Revalidate for local assets
+  // Strategy 1: Network-Only for Gemini API
+  // We strictly do NOT cache AI responses to prevent serving stale data or sensitive leaks in shared caches.
+  if (url.hostname.includes('generativelanguage.googleapis.com')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // Strategy 2: Stale-While-Revalidate for Local Static Assets
   const isStaticAsset = STATIC_ASSETS.some(asset => {
     const normalizedAsset = asset.startsWith('./') ? asset.slice(2) : asset;
     return url.pathname.endsWith(normalizedAsset) || (normalizedAsset === '' && url.pathname.endsWith('/'));
@@ -51,13 +59,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Strategy 2: Cache-First for CDNs (with version persistence)
+  // Strategy 3: Navigation Fallback for Offline Support
+  // If the user navigates to a page and the network fails, serve offline.html.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => {
+        return caches.match('offline.html') || caches.match('./offline.html');
+      })
+    );
+    return;
+  }
+
+  // Strategy 4: Cache-First for CDNs (Immutable/Versioned)
   if (CDN_DOMAINS.some(domain => url.hostname.includes(domain))) {
     event.respondWith(cacheFirst(event.request));
     return;
   }
 
-  // Default: Network with fallback to cache
+  // Strategy 5: Default Network with Cache Fallback
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
   );

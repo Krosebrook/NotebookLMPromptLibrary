@@ -7,7 +7,8 @@ import PromptGenerator from './components/PromptGenerator.tsx';
 import TutorialOverlay from './components/TutorialOverlay.tsx';
 import { PROMPTS, CATEGORIES } from './constants.ts';
 import { PromptData, Collection } from './types.ts';
-import { Search, Menu, Sparkles, Filter, Tag as TagIcon, FileText } from 'lucide-react';
+import { Search, Menu, Sparkles, Filter, Tag as TagIcon, FileText, AlertTriangle } from 'lucide-react';
+import Fuse from 'fuse.js';
 
 function App() {
   const [currentView, setCurrentView] = useState<'library' | 'workbench'>('library');
@@ -35,6 +36,16 @@ function App() {
     const saved = localStorage.getItem('notebook_collections');
     return saved ? JSON.parse(saved) : [];
   });
+
+  // Security Warning for API Key in Client
+  useEffect(() => {
+    if (process.env.API_KEY) {
+      console.warn(
+        "%c SECURITY WARNING: API Key is exposed in the client. \n For production, use a backend proxy.",
+        "background: #ef4444; color: white; padding: 4px; border-radius: 4px; font-weight: bold; font-size: 12px;"
+      );
+    }
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('notebook_saved_prompts', JSON.stringify(savedPrompts));
@@ -75,52 +86,61 @@ function App() {
     return ['All', ...Array.from(formats)].sort();
   }, [allPrompts]);
 
+  // Fuse.js instance for fuzzy searching
+  const fuse = useMemo(() => new Fuse(allPrompts, {
+    keys: [
+      { name: 'title', weight: 0.7 },
+      { name: 'tags', weight: 0.5 },
+      { name: 'bestFor', weight: 0.3 },
+      { name: 'promptText', weight: 0.1 }
+    ],
+    threshold: 0.35, // Slightly relaxed for better typo tolerance
+    ignoreLocation: true,
+    minMatchCharLength: 2
+  }), [allPrompts]);
+
   const filteredPrompts = useMemo(() => {
-    return allPrompts.filter(prompt => {
-      let matchesCategory = false;
-      
-      if (activeCategory === 'all') {
-        matchesCategory = true;
-      } else if (activeCategory === 'saved') {
-        matchesCategory = prompt.categoryId === 'saved';
+    let baseSet = allPrompts;
+
+    // 1. Filter by Category first
+    if (activeCategory !== 'all') {
+      if (activeCategory === 'saved') {
+        baseSet = baseSet.filter(p => p.categoryId === 'saved');
       } else if (activeCollection) {
-        matchesCategory = prompt.collectionId === activeCategory;
+        baseSet = baseSet.filter(p => p.collectionId === activeCategory);
       } else {
-        matchesCategory = prompt.categoryId === activeCategory;
+        baseSet = baseSet.filter(p => p.categoryId === activeCategory);
       }
+    }
 
-      if (selectedFormat !== 'All' && prompt.format !== selectedFormat) {
-        return false;
-      }
+    // 2. Filter by Format
+    if (selectedFormat !== 'All') {
+      baseSet = baseSet.filter(p => p.format === selectedFormat);
+    }
 
-      if (!searchQuery.trim()) return matchesCategory;
+    // 3. Filter by Search Query (using Fuse for fuzzy match if query exists)
+    if (searchQuery.trim()) {
+      const fuseResults = fuse.search(searchQuery);
+      // Fuse returns { item, refIndex }
+      const searchSet = new Set(fuseResults.map(r => r.item.id));
+      // Intersect the category/format filtered baseSet with search results
+      return baseSet.filter(p => searchSet.has(p.id));
+    }
 
-      const terms = searchQuery.toLowerCase().split(' ').filter(t => t.length > 0);
-      const searchableText = `${prompt.title} ${prompt.bestFor} ${prompt.promptText} ${prompt.tags?.join(' ') || ''}`.toLowerCase();
-      
-      const matchesSearch = terms.every(term => searchableText.includes(term));
-      
-      return matchesCategory && matchesSearch;
-    });
-  }, [activeCategory, activeCollection, searchQuery, selectedFormat, allPrompts]);
+    return baseSet;
+  }, [activeCategory, activeCollection, searchQuery, selectedFormat, allPrompts, fuse]);
 
   const suggestions = useMemo(() => {
     if (!searchQuery.trim()) return [];
-    const query = searchQuery.toLowerCase();
     
-    const matchedTitles = allPrompts
-      .filter(p => p.title.toLowerCase().includes(query))
-      .map(p => ({ text: p.title, type: 'Title' }))
-      .slice(0, 3);
-      
-    const matchedTags = Array.from(new Set(
-      allPrompts.flatMap(p => p.tags || [])
-        .filter(t => t.toLowerCase().includes(query))
-    )).map(t => ({ text: t, type: 'Tag' }))
-    .slice(0, 3);
-
-    return [...matchedTitles, ...matchedTags];
-  }, [searchQuery, allPrompts]);
+    // Use Fuse to find matches for suggestions as well
+    const fuseResults = fuse.search(searchQuery, { limit: 5 });
+    
+    return fuseResults.map(result => {
+      const p = result.item;
+      return { text: p.title, type: 'Prompt' };
+    });
+  }, [searchQuery, fuse]);
 
   const handleQuickCopy = (e: React.MouseEvent, text: string, id: string) => {
     e.stopPropagation();
@@ -280,11 +300,11 @@ function App() {
                           }}
                         >
                           <div className="flex items-center gap-3">
-                             {item.type === 'Tag' ? <TagIcon className="w-4 h-4 text-slate-400" /> : <FileText className="w-4 h-4 text-slate-400" />}
+                             <FileText className="w-4 h-4 text-slate-400" />
                              <span className="font-medium group-hover:text-blue-600 transition-colors">{item.text}</span>
                           </div>
                           <span className="text-[10px] text-slate-400 font-bold uppercase bg-slate-100 px-2 py-0.5 rounded transition-all group-hover:bg-blue-100 group-hover:text-blue-600">
-                            {item.type}
+                            Match
                           </span>
                         </button>
                       ))}

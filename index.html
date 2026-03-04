@@ -6,52 +6,25 @@
     <meta name="theme-color" content="#2563eb" />
     <meta name="description" content="A curated collection of context-engineered prompts for Google NotebookLM.">
     
-    <!-- Preconnect to CDNs to save DNS/TCP/TLS handshake time -->
     <link rel="preconnect" href="https://esm.sh" crossorigin>
-    <link rel="preconnect" href="https://cdn.tailwindcss.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     
-    <!-- PWA / Mobile Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="PromptLib">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="format-detection" content="telephone=no">
 
     <title>NotebookLM Prompt Library</title>
     <link rel="manifest" href="manifest.json">
-    <link rel="apple-touch-icon" href="https://via.placeholder.com/180.png?text=PL">
+    <link rel="icon" href="https://picsum.photos/seed/favicon/32/32" type="image/jpeg">
     
-    <!-- Optimized Font Loading -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap&font-display=swap" rel="stylesheet">
     
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-            },
-            colors: {
-              notebook: {
-                50: '#f0f9ff',
-                100: '#e0f2fe',
-                500: '#0ea5e9',
-                600: '#0284c7',
-                900: '#0c4a6e',
-              }
-            }
-          }
-        }
-      }
-    </script>
+    <link rel="stylesheet" href="/index.css">
     <style>
-      /* Critical CSS for the initial skeleton */
       body {
         background-color: #f8fafc;
-        overscroll-behavior-y: none;
         margin: 0;
         padding: 0;
       }
@@ -83,32 +56,157 @@
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
-    </style>
-    <script type="importmap">
-    {
-      "imports": {
-        "react-dom/": "https://esm.sh/react-dom@^19.2.4/",
-        "lucide-react": "https://esm.sh/lucide-react@^0.563.0",
-        "react/": "https://esm.sh/react@^19.2.4/",
-        "react": "https://esm.sh/react@^19.2.4",
-        "@google/genai": "https://esm.sh/@google/genai@^0.21.0"
+      #debug-info {
+        position: fixed;
+        bottom: 20px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 10px;
+        color: #cbd5e1;
+        pointer-events: none;
       }
-    }
-    </script>
-  </head>
+      /* Update Notification Toast */
+      #pwa-update-toast {
+        display: none;
+        position: fixed;
+        bottom: 24px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #1e293b;
+        color: white;
+        padding: 12px 24px;
+        border-radius: 12px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        z-index: 100;
+        align-items: center;
+        gap: 12px;
+        font-family: 'Inter', sans-serif;
+        font-size: 14px;
+        animation: slide-up 0.3s ease-out;
+      }
+      #pwa-update-toast.show {
+        display: flex;
+      }
+      @keyframes slide-up {
+        from { transform: translate(-50%, 100%); opacity: 0; }
+        to { transform: translate(-50%, 0); opacity: 1; }
+      }
+      .update-btn {
+        background: #2563eb;
+        border: none;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 12px;
+      }
+      .update-btn:hover {
+        background: #1d4ed8;
+      }
+      .dismiss-btn {
+        background: transparent;
+        border: none;
+        color: #94a3b8;
+        cursor: pointer;
+        padding: 4px;
+      }
+      .dismiss-btn:hover {
+        color: white;
+      }
+    </style>
+</head>
   <body>
     <div id="root"></div>
-    <!-- Use relative path with dot for ESM entry point -->
-    <script type="module" src="./index.tsx" fetchpriority="high"></script>
+    <div id="debug-info"></div>
+    
+    <!-- PWA Update Toast -->
+    <div id="pwa-update-toast">
+      <span>New version available</span>
+      <button class="update-btn" onclick="window.location.reload()">Refresh</button>
+      <button class="dismiss-btn" onclick="document.getElementById('pwa-update-toast').classList.remove('show')">✕</button>
+    </div>
+
     <script>
-      // Simplest possible Service Worker registration
+      // Diagnostic timeout
+      setTimeout(() => {
+        const root = document.getElementById('root');
+        if (root && root.innerHTML === '') {
+          console.warn('[Bootstrap] Root is still empty after 5s. Check console for module errors.');
+          const debug = document.getElementById('debug-info');
+          if (debug) debug.innerText = 'Module loading stalled. Check DevTools Console.';
+        }
+      }, 5000);
+
+      // Robust PWA Service Worker Registration & Update Logic
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('sw.js')
-            .then(reg => console.log('[PWA] Registered'))
-            .catch(err => console.debug('[PWA] Registration failed:', err.message));
+        window.addEventListener('load', async () => {
+          try {
+            // Register SW with explicit relative path
+            const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+            console.log('[PWA] Service Worker registered.');
+
+            // Helper to show the toast
+            const showUpdateToast = () => {
+              const toast = document.getElementById('pwa-update-toast');
+              if (toast) toast.classList.add('show');
+            };
+
+            // 1. Check if there's a waiting worker immediately (e.g. from previous load)
+            if (reg.waiting) {
+              console.log('[PWA] A waiting worker was found. Prompting update.');
+              showUpdateToast();
+            }
+
+            // 2. Listen for new workers installing
+            reg.onupdatefound = () => {
+              const installingWorker = reg.installing;
+              if (!installingWorker) return;
+
+              installingWorker.onstatechange = () => {
+                if (installingWorker.state === 'installed') {
+                  if (navigator.serviceWorker.controller) {
+                    // Update available
+                    console.log('[PWA] New content is available; please refresh.');
+                    showUpdateToast();
+                  } else {
+                    console.log('[PWA] Content is cached for offline use.');
+                  }
+                }
+              };
+            };
+
+            // 3. Poll for updates periodically (every 1 hour)
+            setInterval(() => {
+              reg.update();
+            }, 60 * 60 * 1000);
+            
+            // 4. Check for updates when the user returns to the tab
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    console.debug('[PWA] Tab visible, checking for updates...');
+                    reg.update();
+                }
+            });
+
+          } catch (err) {
+            console.debug('[PWA] SW Registration skipped/failed:', err.message);
+          }
+        });
+        
+        // Ensure controller changes reload the page if needed, or handle smoothly
+        let refreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+           if (!refreshing) {
+               console.log('[PWA] Controller changed.');
+               // We usually don't auto-reload here to prevent disrupting user work, 
+               // but the toast 'Refresh' button triggers window.location.reload()
+               refreshing = true;
+           }
         });
       }
     </script>
-  </body>
+  <script type="module" src="/index.tsx"></script>
+</body>
 </html>

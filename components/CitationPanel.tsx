@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Book, Plus, Trash2, ExternalLink, Quote, Search } from 'lucide-react';
-import { Source } from '../types';
+import { Source } from '../types.ts';
 
 interface CitationPanelProps {
   sources: Source[];

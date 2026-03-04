@@ -1,4 +1,4 @@
-import { Category, PromptData } from './types';
+import { Category, PromptData } from './types.ts';
 
 export const CATEGORIES: Category[] = [
   { id: 'all', label: 'All Prompts', iconName: 'All', description: 'Browse the entire collection' },

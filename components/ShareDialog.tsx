@@ -1,6 +1,6 @@
 import React from 'react';
 import { X, Globe, Copy, Check, User } from 'lucide-react';
-import { Collaborator } from '../types';
+import { Collaborator } from '../types.ts';
 
 interface ShareDialogProps {
   isOpen: boolean;

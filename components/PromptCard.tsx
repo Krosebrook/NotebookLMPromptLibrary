@@ -1,6 +1,6 @@
 import React from 'react';
 import { ArrowRight, Copy, Check } from 'lucide-react';
-import { PromptData } from '../types';
+import { PromptData } from '../types.ts';
 
 interface PromptCardProps {
   prompt: PromptData;
