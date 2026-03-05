@@ -10,6 +10,9 @@ export interface PromptData {
   tip: string;
   tags?: string[];
   collectionId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  author?: string;
 }
 
 export interface Collection {

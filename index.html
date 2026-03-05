@@ -143,8 +143,8 @@
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', async () => {
           try {
-            // Register SW with explicit relative path
-            const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+            // Register SW with explicit absolute path
+            const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
             console.log('[PWA] Service Worker registered.');
 
             // Helper to show the toast

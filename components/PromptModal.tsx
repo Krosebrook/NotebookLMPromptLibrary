@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Copy, Check, Info, Lightbulb, Tag, Folder, Layers, FileText, LayoutTemplate } from 'lucide-react';
+import { X, Copy, Check, Info, Lightbulb, Tag, Folder, Layers, FileText, LayoutTemplate, Calendar, User } from 'lucide-react';
 import { PromptData, Collection } from '../types.ts';
 import { CATEGORIES } from '../constants.ts';
 
@@ -105,7 +105,26 @@ const PromptModal: React.FC<PromptModalProps> = ({ prompt, collections = [], onU
 
           {/* New Visually Distinct Metadata Panel */}
           <div className="bg-slate-100 rounded-xl p-5 border border-slate-200">
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Key Metadata</h4>
+            <div className="flex justify-between items-center mb-3">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Key Metadata</h4>
+              <div className="flex items-center gap-3 text-[10px] text-slate-400 font-medium">
+                {prompt.author && (
+                  <span className="flex items-center gap-1">
+                    <User className="w-3 h-3" /> {prompt.author}
+                  </span>
+                )}
+                {prompt.createdAt && (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" /> Created: {new Date(prompt.createdAt).toLocaleDateString()}
+                  </span>
+                )}
+                {prompt.updatedAt && prompt.updatedAt !== prompt.createdAt && (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" /> Updated: {new Date(prompt.updatedAt).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+            </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-4">
                  <div>
@@ -222,7 +241,28 @@ const PromptModal: React.FC<PromptModalProps> = ({ prompt, collections = [], onU
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+        <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
+          <button
+            onClick={handleCopy}
+            className={`
+              flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all shadow-sm
+              ${isCopied 
+                ? 'bg-green-600 text-white hover:bg-green-700' 
+                : 'bg-blue-600 text-white hover:bg-blue-700'}
+            `}
+          >
+            {isCopied ? (
+              <>
+                <Check className="w-4 h-4" />
+                <span>Copied to Clipboard</span>
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4" />
+                <span>Copy to Clipboard</span>
+              </>
+            )}
+          </button>
           <button
             onClick={onClose}
             className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-200 rounded-lg transition-colors"
