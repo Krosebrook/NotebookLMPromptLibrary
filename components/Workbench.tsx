@@ -39,6 +39,7 @@ const Workbench: React.FC = () => {
   const [showHistory, setShowHistory] = useState(false);
   const [showCritique, setShowCritique] = useState(false);
   const [critiqueText, setCritiqueText] = useState<string | null>(null);
+  const [groundingUrls, setGroundingUrls] = useState<{uri: string, title: string}[]>([]);
   const [isCritiquing, setIsCritiquing] = useState(false);
   const [lastSaved, setLastSaved] = useState('Just now');
   const [isSaving, setIsSaving] = useState(false);
@@ -94,7 +95,7 @@ const Workbench: React.FC = () => {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
-        contents: `Critique the following NotebookLM prompt draft based on the R-I-S-E framework.
+        contents: `Critique the following NotebookLM prompt draft based on all best practice framework adherence.
 Prompt Draft:
 """
 ${content}
@@ -103,16 +104,25 @@ ${content}
 Provide:
 1. Strengths (what's working)
 2. Weaknesses (what's missing or vague)
-3. A suggested R-I-S-E version of this prompt.
+3. A suggested version of this prompt that adheres to best practices.
 
 Format the output clearly using headers and bullet points.`,
         config: {
-          systemInstruction: "You are a prompt engineer for Google NotebookLM. Your goal is to help users move from simple queries to context-engineered 'Power Prompts'. Be encouraging but ruthlessly accurate about missing constraints (the STOP part of RISE).",
+          systemInstruction: "You are a prompt engineer for Google NotebookLM. Your goal is to help users move from simple queries to context-engineered 'Power Prompts'. Be encouraging but ruthlessly accurate about missing constraints.",
           temperature: 0.5,
+          tools: [{ googleSearch: {} }],
         }
       });
 
       setCritiqueText(response.text || "AI failed to generate a critique.");
+      
+      const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+      if (chunks) {
+        const urls = chunks.map(chunk => chunk.web).filter(Boolean) as {uri: string, title: string}[];
+        setGroundingUrls(urls);
+      } else {
+        setGroundingUrls([]);
+      }
     } catch (err) {
       console.error(err);
       setCritiqueText("Error connecting to Gemini. Please try again later.");
@@ -252,12 +262,27 @@ Format the output clearly using headers and bullet points.`,
                   <pre className="whitespace-pre-wrap font-sans text-sm">
                     {critiqueText}
                   </pre>
+                  {groundingUrls.length > 0 && (
+                    <div className="mt-6 pt-4 border-t border-slate-100">
+                      <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Sources</h4>
+                      <ul className="space-y-2">
+                        {groundingUrls.map((url, idx) => (
+                          <li key={idx}>
+                            <a href={url.uri} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs flex items-center gap-1">
+                              <Cloud className="w-3 h-3" />
+                              {url.title || url.uri}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
             <div className="p-4 bg-slate-50 border-t border-slate-100 rounded-b-2xl">
               <p className="text-[10px] text-slate-400 text-center">
-                Powered by Gemini 3 Flash • R-I-S-E Evaluation
+                Powered by Gemini 3 Flash • Best Practice Evaluation
               </p>
             </div>
           </div>

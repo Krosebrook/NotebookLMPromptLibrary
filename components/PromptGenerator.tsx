@@ -16,6 +16,7 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({ isOpen, onClose, onSa
   const [format, setFormat] = useState('Audio Overview');
   const [audience, setAudience] = useState('General Audience');
   const [tone, setTone] = useState('Professional');
+  const [framework, setFramework] = useState('R-I-S-E');
   
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedPrompt, setGeneratedPrompt] = useState('');
@@ -35,6 +36,33 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({ isOpen, onClose, onSa
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      
+      let frameworkInstructions = '';
+      if (framework === 'R-I-S-E') {
+        frameworkInstructions = `You MUST follow the R-I-S-E framework:
+- ROLE: Define a specific persona for the AI.
+- INPUT: Specify how the AI should use the uploaded source materials.
+- STOP: Set clear constraints and boundaries.
+- EXAMPLE: Provide or describe the expected output format.`;
+      } else if (framework === 'C-R-E-A-T-E') {
+        frameworkInstructions = `You MUST follow the C-R-E-A-T-E framework:
+- CONTEXT: Provide background information.
+- REQUEST: State the specific task.
+- EXPLANATION: Explain the purpose or goal.
+- ACTION: Detail the steps to take.
+- TONE: Specify the voice and style.
+- EXTRAS: Add any additional constraints or details.`;
+      } else if (framework === 'T-R-A-C-E') {
+        frameworkInstructions = `You MUST follow the T-R-A-C-E framework:
+- TASK: Define the specific task.
+- REQUEST: State what you need the AI to do.
+- ACTION: Detail the steps the AI should take.
+- CONTEXT: Provide background information.
+- EXAMPLE: Give an example of the desired output.`;
+      } else {
+        frameworkInstructions = `You MUST follow the ${framework} framework to structure the prompt effectively.`;
+      }
+
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: `Generate a high-quality NotebookLM prompt for the topic: "${topic}".
@@ -42,15 +70,11 @@ Format required: ${format}
 Audience: ${audience}
 Tone: ${tone}
 
-You MUST follow the R-I-S-E framework:
-- ROLE: Define a specific persona for the AI.
-- INPUT: Specify how the AI should use the uploaded source materials.
-- STOP: Set clear constraints and boundaries.
-- EXAMPLE: Provide or describe the expected output format.
+${frameworkInstructions}
 
 Return ONLY the prompt text, no conversational filler.`,
         config: {
-          systemInstruction: "You are a world-class Prompt Engineer specializing in Google NotebookLM. Your prompts are structured, precise, and leverage the R-I-S-E framework to eliminate hallucinations and maximize depth.",
+          systemInstruction: `You are a world-class Prompt Engineer specializing in Google NotebookLM. Your prompts are structured, precise, and leverage the ${framework} framework to eliminate hallucinations and maximize depth.`,
           temperature: 0.7,
         }
       });
@@ -189,17 +213,33 @@ Return ONLY the prompt text, no conversational filler.`,
                 </div>
               </div>
               
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">
-                  Target Audience
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g., C-Level Executives, Undergraduates"
-                  value={audience}
-                  onChange={(e) => setAudience(e.target.value)}
-                  className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Target Audience
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g., C-Level Execs"
+                    value={audience}
+                    onChange={(e) => setAudience(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">
+                    Framework
+                  </label>
+                  <select
+                    value={framework}
+                    onChange={(e) => setFramework(e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  >
+                    <option value="R-I-S-E">R-I-S-E</option>
+                    <option value="C-R-E-A-T-E">C-R-E-A-T-E</option>
+                    <option value="T-R-A-C-E">T-R-A-C-E</option>
+                  </select>
+                </div>
               </div>
 
               <div className="pt-2">
@@ -243,7 +283,7 @@ Return ONLY the prompt text, no conversational filler.`,
                   </button>
                 </div>
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
-                  <Sparkles className="w-3 h-3 text-blue-500" /> R-I-S-E Structured Prompt
+                  <Sparkles className="w-3 h-3 text-blue-500" /> {framework} Structured Prompt
                 </h3>
                 <pre className="whitespace-pre-wrap font-sans text-slate-800 text-sm leading-relaxed pr-8 max-h-64 overflow-y-auto">
                   {generatedPrompt}

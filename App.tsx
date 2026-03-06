@@ -91,8 +91,7 @@ function App() {
     keys: [
       { name: 'title', weight: 0.7 },
       { name: 'tags', weight: 0.5 },
-      { name: 'bestFor', weight: 0.3 },
-      { name: 'promptText', weight: 0.1 }
+      { name: 'bestFor', weight: 0.3 }
     ],
     threshold: 0.35, // Slightly relaxed for better typo tolerance
     ignoreLocation: true,
@@ -198,16 +197,17 @@ function App() {
     if (!promptToMove) return;
 
     const isAlreadySaved = savedPrompts.some(p => p.id === promptId);
+    const newCollectionId = targetCollectionId === 'saved' ? undefined : targetCollectionId;
 
     if (isAlreadySaved) {
        setSavedPrompts(prev => prev.map(p => 
-         p.id === promptId ? { ...p, collectionId: targetCollectionId } : p
+         p.id === promptId ? { ...p, collectionId: newCollectionId } : p
        ));
     } else {
        const newPrompt = { 
          ...promptToMove, 
          categoryId: 'saved',
-         collectionId: targetCollectionId,
+         collectionId: newCollectionId,
          id: `saved_${promptToMove.id}_${Date.now()}` 
        };
        setSavedPrompts(prev => [...prev, newPrompt]);

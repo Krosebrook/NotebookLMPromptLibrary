@@ -13,8 +13,17 @@ const PromptCard: React.FC<PromptCardProps> = ({ prompt, onClick, onQuickCopy, i
   const handleDragStart = (e: React.DragEvent) => {
     e.dataTransfer.setData('text/plain', prompt.id);
     e.dataTransfer.effectAllowed = 'move';
-    // Add visual feedback class to the card being dragged if desired
-    // (e.target as HTMLElement).classList.add('opacity-50');
+    setTimeout(() => {
+      if (e.target instanceof HTMLElement) {
+        e.target.classList.add('opacity-50');
+      }
+    }, 0);
+  };
+
+  const handleDragEnd = (e: React.DragEvent) => {
+    if (e.target instanceof HTMLElement) {
+      e.target.classList.remove('opacity-50');
+    }
   };
 
   return (
@@ -22,6 +31,7 @@ const PromptCard: React.FC<PromptCardProps> = ({ prompt, onClick, onQuickCopy, i
       onClick={onClick}
       draggable
       onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
       className="group bg-white rounded-xl border border-slate-200 p-5 cursor-grab active:cursor-grabbing hover:shadow-lg hover:border-blue-300 transition-all duration-200 flex flex-col h-full transform hover:-translate-y-1 hover:scale-[1.02] relative"
     >
       <div className="flex justify-between items-start mb-3">

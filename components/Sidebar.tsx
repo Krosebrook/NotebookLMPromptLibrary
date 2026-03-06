@@ -239,8 +239,12 @@ const Sidebar: React.FC<SidebarProps> = ({
                         onSelectCategory('saved');
                         setIsMobileOpen(false);
                       }}
+                      onDragOver={(e) => handleDragOver(e, 'saved')}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, 'saved')}
                       className={`
                         w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200
+                        ${dragOverId === 'saved' ? 'bg-blue-50 ring-2 ring-blue-300 scale-[1.02]' : ''}
                         ${activeCategory === 'saved' 
                           ? 'bg-slate-100 text-slate-900' 
                           : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'}
