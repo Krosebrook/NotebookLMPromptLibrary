@@ -11,6 +11,126 @@ interface PromptGeneratorProps {
   collections?: Collection[];
 }
 
+const FRAMEWORKS: Record<string, string> = {
+  'R-I-S-E': `You MUST follow the R-I-S-E framework:
+- ROLE: Define a specific persona for the AI.
+- INPUT: Specify how the AI should use the uploaded source materials.
+- STOP: Set clear constraints and boundaries.
+- EXAMPLE: Provide or describe the expected output format.`,
+  'C-R-E-A-T-E': `You MUST follow the C-R-E-A-T-E framework:
+- CONTEXT: Provide background information.
+- REQUEST: State the specific task.
+- EXPLANATION: Explain the purpose or goal.
+- ACTION: Detail the steps to take.
+- TONE: Specify the voice and style.
+- EXTRAS: Add any additional constraints or details.`,
+  'T-R-A-C-E': `You MUST follow the T-R-A-C-E framework:
+- TASK: Define the specific task.
+- REQUEST: State what you need the AI to do.
+- ACTION: Detail the steps the AI should take.
+- CONTEXT: Provide background information.
+- EXAMPLE: Give an example of the desired output.`,
+  'D-E-P-T-H': `You MUST follow the D-E-P-T-H framework:
+- DETAIL: Provide specific details about the topic.
+- EXPLAIN: Explain the core concepts or background.
+- PURPOSE: State the goal of the prompt.
+- TONE: Describe the desired attitude or voice.
+- HELPFUL ADDITIONS: Provide any extra context or constraints.`,
+  'V-I-S-T-A-D-E-L': `You MUST follow the V-I-S-T-A-D-E-L framework:
+- VOICE: Define the persona.
+- INFORMATION: Provide necessary background context.
+- STEPS: Outline the sequence of actions.
+- TONE: Specify the emotional or professional quality.
+- AUDIENCE: Identify the target reader.
+- DELIVERABLE: Describe the expected output format.
+- EXTRAS: Add any constraints or specific inclusions.
+- LENGTH: Specify the word count or size limit.`,
+  'A-P-E': `You MUST follow the A-P-E framework:
+- ACTION: Define the job or task to be done.
+- PURPOSE: Discuss the intention or goal.
+- EXPECTATION: State the desired outcome or format.`,
+  'C-O-A-S-T': `You MUST follow the C-O-A-S-T framework:
+- CONTEXT: Provide the background.
+- OBJECTIVE: State the goal.
+- AUDIENCE: Define the target reader.
+- STYLE: Specify the writing style.
+- TONE: Describe the emotional quality.`,
+  'R-A-C-E': `You MUST follow the R-A-C-E framework:
+- ROLE: Define the persona.
+- ACTION: State the task.
+- CONTEXT: Provide background.
+- EXPECTATION: Describe the desired output.`,
+  'T-R-I-C-K': `You MUST follow the T-R-I-C-K framework:
+- TASK: What needs to be done.
+- ROLE: Who the AI should act as.
+- INTENT: The purpose of the task.
+- CONTEXT: Background information.
+- KNOWLEDGE: Specific information the AI should use.`,
+  'R-O-S-E-S': `You MUST follow the R-O-S-E-S framework:
+- ROLE: Define the persona.
+- OBJECTIVE: State the main goal.
+- SCENARIO: Describe the situation or context.
+- EXPECTED SOLUTION: Define the format and criteria for the result.
+- STEPS: Outline the sequence of actions to take.`,
+  'C-A-R-E': `You MUST follow the C-A-R-E framework:
+- CONTEXT: Provide the background or situation.
+- ACTION: Describe what needs to be done.
+- RESULT: State the desired outcome.
+- EXAMPLE: Provide an example to guide the output.`,
+  'R-O-S-E': `You MUST follow the R-O-S-E framework:
+- ROLE: Define the persona.
+- OBJECTIVE: State the main goal.
+- SCENARIO: Describe the situation or context.
+- EXPECTED OUTPUT: Define the format and criteria for the result.`,
+  'P-A-S': `You MUST follow the P-A-S framework:
+- PROBLEM: Identify the core issue.
+- AGITATE: Highlight the consequences of the problem.
+- SOLUTION: Provide the resolution or answer.`,
+  'A-I-D-A': `You MUST follow the A-I-D-A framework:
+- ATTENTION: Hook the reader.
+- INTEREST: Provide compelling information.
+- DESIRE: Create a want or need.
+- ACTION: Call the reader to take a specific step.`,
+  'S-T-A-R': `You MUST follow the S-T-A-R framework:
+- SITUATION: Set the scene.
+- TASK: Describe the challenge.
+- ACTION: Detail the steps taken.
+- RESULT: Explain the outcome.`,
+  'R-T-F': `You MUST follow the R-T-F framework:
+- ROLE: Specify the persona.
+- TASK: Define the objective.
+- FORMAT: Detail how the output should be structured.`,
+  'B-A-B': `You MUST follow the B-A-B framework:
+- BEFORE: Describe the current situation.
+- AFTER: Describe the desired future state.
+- BRIDGE: Explain how to get from Before to After.`,
+  'P-E-E-L': `You MUST follow the P-E-E-L framework:
+- POINT: State the main idea.
+- EVIDENCE: Provide supporting facts or examples.
+- EXPLANATION: Explain how the evidence supports the point.
+- LINK: Connect back to the main topic or next point.`,
+  'T-A-G': `You MUST follow the T-A-G framework:
+- TASK: Define what needs to be done.
+- ACTION: Specify the steps to achieve it.
+- GOAL: State the ultimate objective.`,
+  'C-L-E-A-R': `You MUST follow the C-L-E-A-R framework:
+- CONTEXT: Provide background.
+- LENGTH: Specify the desired output length.
+- EXPLANATION: Detail the purpose.
+- ACTION: State the specific task.
+- ROLE: Define the persona.`,
+  'E-R-A': `You MUST follow the E-R-A framework:
+- EXPECTATION: State the desired outcome.
+- ROLE: Define the persona.
+- ACTION: Specify the steps to take.`,
+  'S-C-O-P-E': `You MUST follow the S-C-O-P-E framework:
+- SCENARIO: Describe the situation.
+- CONTEXT: Provide background details.
+- OBJECTIVE: State the goal.
+- PARAMETERS: Define constraints and boundaries.
+- EXTRAS: Add any additional requirements.`
+};
+
 const PromptGenerator: React.FC<PromptGeneratorProps> = ({ isOpen, onClose, onSave, collections = [] }) => {
   const [topic, setTopic] = useState('');
   const [format, setFormat] = useState('Audio Overview');
@@ -37,31 +157,7 @@ const PromptGenerator: React.FC<PromptGeneratorProps> = ({ isOpen, onClose, onSa
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
-      let frameworkInstructions = '';
-      if (framework === 'R-I-S-E') {
-        frameworkInstructions = `You MUST follow the R-I-S-E framework:
-- ROLE: Define a specific persona for the AI.
-- INPUT: Specify how the AI should use the uploaded source materials.
-- STOP: Set clear constraints and boundaries.
-- EXAMPLE: Provide or describe the expected output format.`;
-      } else if (framework === 'C-R-E-A-T-E') {
-        frameworkInstructions = `You MUST follow the C-R-E-A-T-E framework:
-- CONTEXT: Provide background information.
-- REQUEST: State the specific task.
-- EXPLANATION: Explain the purpose or goal.
-- ACTION: Detail the steps to take.
-- TONE: Specify the voice and style.
-- EXTRAS: Add any additional constraints or details.`;
-      } else if (framework === 'T-R-A-C-E') {
-        frameworkInstructions = `You MUST follow the T-R-A-C-E framework:
-- TASK: Define the specific task.
-- REQUEST: State what you need the AI to do.
-- ACTION: Detail the steps the AI should take.
-- CONTEXT: Provide background information.
-- EXAMPLE: Give an example of the desired output.`;
-      } else {
-        frameworkInstructions = `You MUST follow the ${framework} framework to structure the prompt effectively.`;
-      }
+      let frameworkInstructions = FRAMEWORKS[framework] || `You MUST follow the ${framework} framework to structure the prompt effectively.`;
 
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
@@ -235,9 +331,9 @@ Return ONLY the prompt text, no conversational filler.`,
                     onChange={(e) => setFramework(e.target.value)}
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
                   >
-                    <option value="R-I-S-E">R-I-S-E</option>
-                    <option value="C-R-E-A-T-E">C-R-E-A-T-E</option>
-                    <option value="T-R-A-C-E">T-R-A-C-E</option>
+                    {Object.keys(FRAMEWORKS).map(fw => (
+                      <option key={fw} value={fw}>{fw}</option>
+                    ))}
                   </select>
                 </div>
               </div>
