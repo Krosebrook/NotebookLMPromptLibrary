@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Clock, Users, Share2, Save, Undo, Redo, ChevronRight, CheckCircle2, Sparkles, AlertTriangle, X, BrainCircuit, RefreshCw, Cloud } from 'lucide-react';
+import { Clock, Users, Share2, Save, Undo, Redo, ChevronRight, CheckCircle2, Sparkles, X, BrainCircuit, RefreshCw, Cloud } from 'lucide-react';
 import Editor from './Editor.tsx';
 import CitationPanel from './CitationPanel.tsx';
 import ShareDialog from './ShareDialog.tsx';
@@ -299,7 +299,13 @@ Format the output clearly using headers and bullet points.`,
         )}
       </div>
 
-      <ShareDialog isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} collaborators={collaborators} onUpdateRole={(id, r) => setCollaborators(prev => prev.map(c => c.id === id ? {...c, role: r as any} : c))} />
+      <ShareDialog isOpen={isShareOpen} onClose={() => setIsShareOpen(false)} collaborators={collaborators} onUpdateRole={(id, r) => {
+        if (r === 'remove') {
+          setCollaborators(prev => prev.filter(c => c.id !== id));
+        } else {
+          setCollaborators(prev => prev.map(c => c.id === id ? { ...c, role: r } : c));
+        }
+      }} />
     </div>
   );
 };

@@ -181,7 +181,7 @@ Return ONLY the prompt text, no conversational filler.`,
       } else {
         throw new Error("No content received from AI.");
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error("Generation failed:", err);
       setError("Failed to generate prompt. Please check your connection or try again.");
     } finally {
