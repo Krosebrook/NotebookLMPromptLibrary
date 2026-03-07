@@ -30,7 +30,7 @@ const PromptModal: React.FC<PromptModalProps> = ({ prompt, collections = [], onU
   const category = CATEGORIES.find(c => c.id === prompt.categoryId);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(prompt.promptText);
+    navigator.clipboard.writeText(prompt.promptText).catch(() => {});
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };

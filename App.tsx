@@ -7,7 +7,7 @@ import PromptGenerator from './components/PromptGenerator.tsx';
 import TutorialOverlay from './components/TutorialOverlay.tsx';
 import { PROMPTS, CATEGORIES } from './constants.ts';
 import { PromptData, Collection } from './types.ts';
-import { Search, Menu, Sparkles, Filter, Tag as TagIcon, FileText, AlertTriangle } from 'lucide-react';
+import { Search, Menu, Sparkles, Filter, Tag as TagIcon, FileText } from 'lucide-react';
 import Fuse from 'fuse.js';
 
 function App() {
@@ -28,13 +28,21 @@ function App() {
   });
 
   const [savedPrompts, setSavedPrompts] = useState<PromptData[]>(() => {
-    const saved = localStorage.getItem('notebook_saved_prompts');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('notebook_saved_prompts');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
 
   const [collections, setCollections] = useState<Collection[]>(() => {
-    const saved = localStorage.getItem('notebook_collections');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('notebook_collections');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
 
   // Security Warning for API Key in Client
@@ -143,7 +151,7 @@ function App() {
 
   const handleQuickCopy = (e: React.MouseEvent, text: string, id: string) => {
     e.stopPropagation();
-    navigator.clipboard.writeText(text);
+    navigator.clipboard.writeText(text).catch(() => {});
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   };
@@ -243,6 +251,7 @@ function App() {
         <button 
           className="md:hidden absolute top-4 left-4 z-40 p-2 bg-white/80 backdrop-blur shadow-sm border border-slate-200 rounded-lg text-slate-500"
           onClick={() => setIsMobileSidebarOpen(true)}
+          aria-label="Open navigation menu"
         >
           <Menu className="w-5 h-5" />
         </button>

@@ -26,9 +26,9 @@ I want you to summarize the core findings of [Source 1].
 `;
 
 const Workbench: React.FC = () => {
-  const [content, setContent] = useState<string>(() => {
-    return localStorage.getItem('notebook_content') || DEFAULT_CONTENT;
-  });
+  const [content, setContent] = useState<string>(
+    () => localStorage.getItem('notebook_content') || DEFAULT_CONTENT
+  );
   
   const [history, setHistory] = useState<string[]>([content]);
   const [historyIndex, setHistoryIndex] = useState(0);
