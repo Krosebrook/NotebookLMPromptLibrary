@@ -190,7 +190,7 @@ Return ONLY the prompt text, no conversational filler.`,
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(generatedPrompt);
+    navigator.clipboard.writeText(generatedPrompt).catch(() => {});
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
@@ -200,7 +200,7 @@ Return ONLY the prompt text, no conversational filler.`,
       const parsedTags = tags.split(',').map(t => t.trim()).filter(t => t.length > 0);
       
       const newPrompt: PromptData = {
-        id: Math.random().toString(36).substr(2, 9),
+        id: crypto.randomUUID(),
         categoryId: 'saved',
         title: `${topic} (${format})`,
         format: format,

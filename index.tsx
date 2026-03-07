@@ -1,8 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App.tsx';
-
-console.log('[App] Entry point execution started.');
+import ErrorBoundary from './components/ErrorBoundary.tsx';
 
 const mountApp = () => {
   const rootElement = document.getElementById('root');
@@ -16,10 +15,11 @@ const mountApp = () => {
     const root = ReactDOM.createRoot(rootElement);
     root.render(
       <React.StrictMode>
-        <App />
+        <ErrorBoundary>
+          <App />
+        </ErrorBoundary>
       </React.StrictMode>
     );
-    console.log('[App] React render triggered.');
   } catch (err) {
     console.error('[App] Critical error during React initialization:', err);
     rootElement.innerHTML = `
