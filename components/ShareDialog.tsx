@@ -6,7 +6,7 @@ interface ShareDialogProps {
   isOpen: boolean;
   onClose: () => void;
   collaborators: Collaborator[];
-  onUpdateRole: (id: string, role: Collaborator['role']) => void;
+  onUpdateRole: (id: string, role: Collaborator['role'] | 'remove') => void;
 }
 
 const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose, collaborators, onUpdateRole }) => {
@@ -15,7 +15,7 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose, collaborator
   if (!isOpen) return null;
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(window.location.href);
+    navigator.clipboard.writeText(window.location.href).catch(() => {});
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -69,7 +69,7 @@ const ShareDialog: React.FC<ShareDialogProps> = ({ isOpen, onClose, collaborator
                   {user.role !== 'owner' ? (
                     <select 
                       value={user.role}
-                      onChange={(e) => onUpdateRole(user.id, e.target.value as any)}
+                      onChange={(e) => onUpdateRole(user.id, e.target.value as Collaborator['role'] | 'remove')}
                       className="text-sm text-slate-600 bg-transparent border-none focus:ring-0 cursor-pointer hover:text-blue-600 font-medium"
                     >
                       <option value="editor">Editor</option>
